@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function VerifyEmailPage() { return <main className="auth-screen"><div className="auth-shell"><div className="auth-brand"><span>语</span><b>物语了</b><small>WUYULE</small></div><p className="eyebrow">CHECK YOUR INBOX</p><h1>Verify email</h1><p className="auth-description">验证链接已发送。开发态请复制终端打印的链接，打开后即可完成验证。</p><Link href="/login" className="primary-button auth-link-button">BACK TO SIGN IN</Link></div></main>; }
