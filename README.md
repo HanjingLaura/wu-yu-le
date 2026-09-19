@@ -9,7 +9,7 @@
 ```bash
 cd wu-yu-le
 npm i
-cp .env.example .env.local
+cp .env.example .env
 # 编辑 .env.local，至少把 NEXTAUTH_SECRET 换成随机字符串
 npm run db:push           # 首次运行或修改 schema 后执行
 npm run db:seed           # 可选：写入演示账号和一条 Public 故事
