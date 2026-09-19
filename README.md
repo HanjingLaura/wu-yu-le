@@ -10,7 +10,7 @@
 cd wu-yu-le
 npm i
 cp .env.example .env
-# 编辑 .env.local，至少把 NEXTAUTH_SECRET 换成随机字符串
+# 编辑 .env，至少把 NEXTAUTH_SECRET 换成随机字符串
 npm run db:push           # 首次运行或修改 schema 后执行
 npm run db:seed           # 可选：写入演示账号和一条 Public 故事
 npm run dev
@@ -29,7 +29,7 @@ npm run dev
 - `MAIL_MODE`：开发时默认 `console`（验证邮件和重置链接打印到终端）；邮件传输层可替换为 Ethereal。生产邮件可填 `RESEND_API_KEY` 与 `RESEND_FROM`（`EMAIL_FROM` 保留作默认发件人标识）。
 - `S3_*`：可选的 S3 兼容图片存储配置。未配置时使用本地 `uploads/` 占位路径。
 
-不要把 `.env.local`、数据库文件或邮件密钥提交到仓库。
+不要把 `.env` / `.env.local`、数据库文件或邮件密钥提交到仓库。
 
 ## MVP 功能
 
