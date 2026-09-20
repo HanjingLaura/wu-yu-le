@@ -66,8 +66,19 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .bottom-nav{bottom:14px;width:min(680px,calc(100% - 24px));height:68px;padding:6px 10px 7px;border:1px solid var(--line);border-radius:36px;background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:0 7px 22px #56331f1c;backdrop-filter:blur(10px)}
 .nav-item{color:var(--muted);padding:5px 6px;font-size:9px}
 .nav-item.active{color:var(--ink)}
+.nav-item svg{display:block;flex:none}
 .add-button,.shell .nav-plus{width:48px;height:48px;margin-bottom:3px;background:var(--ink);color:var(--paper);box-shadow:none}
 .masonry{margin-top:20px}
+.gallery-view .masonry{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;margin-top:0}
+.gallery-view .masonry-column{display:flex;min-width:0;flex-direction:column;gap:14px}
+.gallery-view .gallery-card{display:block;width:100%;break-inside:avoid;margin:0;vertical-align:top}
+.gallery-view .gallery-card.offset{margin-top:26px}
+.gallery-view .gallery-image{height:auto;max-height:none}
+.gallery-masonry{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;margin-top:0}
+.gallery-masonry-column{display:flex;min-width:0;flex-direction:column;gap:14px}
+.gallery-masonry .gallery-card{display:block;width:100%;break-inside:avoid;margin:0;vertical-align:top}
+.gallery-masonry .gallery-card.offset{margin-top:26px}
+.gallery-masonry .gallery-image{height:auto;max-height:none}
 .gallery-card,.shell .gallery-card,.card{border:1.5px solid var(--line);border-radius:21px;background:var(--surface);box-shadow:none}
 .gallery-card{overflow:hidden}
 .gallery-card img,.gallery-image{filter:saturate(.62) sepia(.16)}
@@ -95,7 +106,6 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .parchment-copy .lead{margin:0;color:#665a4c;font:16px/1.7 'Noto Serif SC',serif}
 .parchment-copy .reader-copy{padding:18px 0 0;font:16px/1.9 'Noto Serif SC',serif}
 .parchment-copy .reader-copy p{margin:0 0 15px}
-.parchment-back{display:flex;align-items:center;justify-content:center;gap:5px;align-self:center;margin:0 0 23px;padding:10px 17px;border:1.5px solid var(--ink);border-radius:999px;background:transparent;color:var(--ink);font:500 10px 'DM Mono',monospace;letter-spacing:.08em}
 .reader-progress{background:color-mix(in srgb,var(--ink) 20%,transparent)}
 .reader-progress span{background:var(--ink)}
 .reader-photo{filter:saturate(.62) sepia(.16);border-radius:15px}
@@ -111,6 +121,15 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .reader-copy-block .reader-foot{margin-top:22px}
 .shell .bottom-nav{bottom:14px;width:min(680px,calc(100% - 24px));height:68px;padding:6px 10px 7px;border:1px solid var(--line);border-radius:36px;background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:0 7px 22px #56331f1c}
 .shell-main{padding-top:31px}
+
+/* The detail sheet should read as aged parchment rather than a clean cream card. */
+.parchment-screen{background:linear-gradient(135deg,#d1ae76 0%,#e2c28e 47%,#cba16a 100%)}
+.parchment-sheet{position:relative;isolation:isolate;overflow:hidden;border:1px solid #9d754c;border-radius:13px 18px 11px 16px / 17px 11px 16px 12px;background-color:#d9b97f;background-image:radial-gradient(ellipse at 12% 10%,rgba(107,65,31,.34) 0 1px,transparent 2px),radial-gradient(ellipse at 78% 31%,rgba(128,78,36,.24) 0 2px,transparent 4px),radial-gradient(ellipse at 34% 84%,rgba(119,70,32,.2) 0 1px,transparent 3px),radial-gradient(ellipse at 78% 83%,rgba(255,237,193,.42) 0 15%,transparent 48%),linear-gradient(116deg,#d5ae72 0%,#ead09d 43%,#d0a66c 100%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)' opacity='.18'/%3E%3C/svg%3E");box-shadow:inset 0 0 30px rgba(91,52,24,.22),5px 8px 0 rgba(86,51,31,.14);animation:turn .36s ease}
+.parchment-sheet::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(167deg,transparent 0 82px,rgba(108,66,31,.07) 83px,transparent 86px),repeating-linear-gradient(12deg,transparent 0 123px,rgba(255,240,200,.1) 124px,transparent 128px);mix-blend-mode:multiply;opacity:.65}
+.parchment-sheet::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border:1px solid rgba(89,50,23,.15);box-shadow:inset 0 0 20px rgba(82,45,20,.2);border-radius:inherit}
+.parchment-sheet > *{position:relative;z-index:1}
+.parchment-image{border-radius:0;filter:saturate(.68) sepia(.2) contrast(.96)}
+.parchment-copy{background:rgba(239,211,160,.14)}
 
 /* Signup/login use the same paper and ink, without adding an illustration. */
 .auth-page{padding:24px 18px}
@@ -128,6 +147,24 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .auth-links{justify-content:center;margin-top:21px;gap:18px}
 .auth-links a{color:var(--ink)}
 .auth-screen,.auth-shell{background:var(--paper)}
+
+/* Add irregular stains and soft fold lines without turning the detail into a scroll. */
+.parchment-sheet{
+  background-image:
+    radial-gradient(ellipse at 9% 14%,rgba(109,65,30,.2) 0 2%,transparent 14%),
+    radial-gradient(ellipse at 88% 22%,rgba(117,69,31,.16) 0 2.5%,transparent 15%),
+    radial-gradient(ellipse at 31% 67%,rgba(116,70,33,.13) 0 2%,transparent 13%),
+    radial-gradient(ellipse at 72% 80%,rgba(99,57,25,.16) 0 1.5%,transparent 12%),
+    radial-gradient(ellipse at 78% 83%,rgba(255,237,193,.42) 0 15%,transparent 48%),
+    linear-gradient(116deg,#d5ae72 0%,#ead09d 43%,#d0a66c 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)' opacity='.2'/%3E%3C/svg%3E");
+}
+.parchment-sheet::before{
+  background:
+    repeating-linear-gradient(167deg,transparent 0 82px,rgba(108,66,31,.085) 83px,transparent 86px),
+    repeating-linear-gradient(12deg,transparent 0 123px,rgba(255,240,200,.13) 124px,transparent 128px),
+    linear-gradient(97deg,transparent 0 21%,rgba(108,66,31,.08) 21.2%,transparent 21.8% 64%,rgba(255,244,210,.1) 64.4%,transparent 65%);
+}
 
 @media(min-width:721px){.app-shell,.shell,.reader-screen{border-radius:24px}.app-shell,.shell{margin-top:18px;margin-bottom:18px;min-height:calc(100svh - 36px)}.bottom-nav,.shell .bottom-nav{bottom:25px}.auth-page{min-height:100svh}}
 @media(max-width:560px){.bottom-nav,.shell .bottom-nav{bottom:10px;width:calc(100% - 20px)}.app-shell,.shell{padding-bottom:91px}.auth-card{padding-left:22px;padding-right:22px}.story-card img{width:23%;opacity:.11}}
@@ -183,3 +220,66 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .cutout-status.fallback{color:#7b4f2d}
 .form-error{margin:0;padding:8px 10px;border-radius:9px;background:#f1d0b2;color:#7b3f25;font-size:12px}
 .primary-button:disabled{cursor:wait;opacity:.6}
+
+/* Aged paper treatment for the story detail. The texture stays in CSS so the
+   page does not ship the book-collage reference image as a distracting photo. */
+.parchment-screen{
+  background:
+    radial-gradient(ellipse at 4% 12%,rgba(95,54,23,.14) 0 1px,transparent 22%),
+    radial-gradient(ellipse at 92% 84%,rgba(95,54,23,.16) 0 2px,transparent 20%),
+    linear-gradient(135deg,#d3ae73 0%,#e3c38f 48%,#cda46d 100%);
+}
+.parchment-screen::before{opacity:.1;mix-blend-mode:multiply}
+.parchment-sheet{
+  background-color:#d7b47a;
+  background-image:
+    radial-gradient(ellipse at 7% 17%,rgba(105,59,25,.23) 0 1.5%,transparent 13%),
+    radial-gradient(ellipse at 91% 28%,rgba(104,60,27,.2) 0 1.8%,transparent 16%),
+    radial-gradient(ellipse at 38% 73%,rgba(111,65,28,.16) 0 1.4%,transparent 15%),
+    radial-gradient(ellipse at 79% 90%,rgba(255,236,190,.34) 0 10%,transparent 42%),
+    repeating-linear-gradient(169deg,transparent 0 94px,rgba(91,51,22,.08) 95px,transparent 98px),
+    repeating-linear-gradient(12deg,transparent 0 126px,rgba(255,240,198,.11) 127px,transparent 131px),
+    linear-gradient(116deg,#d3aa6e 0%,#ead19f 43%,#d1a66b 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.76' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)' opacity='.18'/%3E%3C/svg%3E");
+  background-blend-mode:multiply,multiply,multiply,screen,multiply,screen,normal,multiply;
+}
+.parchment-sheet::before{
+  background:
+    linear-gradient(96deg,transparent 0 18%,rgba(102,58,26,.08) 18.2%,transparent 18.8% 62%,rgba(255,241,200,.1) 62.3%,transparent 63%),
+    repeating-linear-gradient(173deg,transparent 0 91px,rgba(95,52,22,.09) 92px,transparent 95px),
+    repeating-linear-gradient(9deg,transparent 0 137px,rgba(255,244,211,.13) 138px,transparent 142px);
+  opacity:.76;
+}
+.parchment-copy{background:rgba(233,202,148,.18)}
+
+/* Two-column photo posts: each column flows naturally so image heights create
+   the waterfall rhythm while the caption remains attached below its image. */
+.gallery-view .masonry{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+}
+.gallery-view .masonry-column{gap:16px}
+.gallery-view .gallery-card.offset{margin-top:0}
+.gallery-view .gallery-card{border-radius:16px;background:rgba(244,228,200,.94)}
+.gallery-view .gallery-image{display:block;width:100%;height:auto;object-fit:cover}
+.gallery-view .gallery-meta{padding:12px 13px 14px}
+
+/* The routed gallery view uses the same two-column feed with a named column
+   wrapper. Keep it in sync with the home gallery so either entry point has
+   identical post spacing and natural image heights. */
+.gallery-masonry .gallery-masonry-column{display:flex;min-width:0;flex-direction:column;gap:16px}
+.gallery-masonry .gallery-card.offset{margin-top:0}
+.gallery-masonry .gallery-card{border-radius:16px;background:rgba(244,228,200,.94)}
+.gallery-masonry .gallery-image{display:block;width:100%;height:auto;object-fit:cover}
+.gallery-masonry .gallery-body{padding:12px 13px 14px}
+
+@media(max-width:560px){
+  .gallery-view .masonry{gap:10px}
+  .gallery-view .masonry-column{gap:10px}
+  .gallery-view .gallery-card{border-radius:14px}
+  .gallery-masonry{gap:10px}
+  .gallery-masonry .gallery-masonry-column{gap:10px}
+  .gallery-masonry .gallery-card{border-radius:14px}
+}

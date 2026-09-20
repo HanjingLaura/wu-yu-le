@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, BookOpen, Camera, Check, ChevronLeft, CircleUserRound, GalleryHorizontal, Grid2X2, Heart, ImagePlus, LockKeyhole, MessageCircle, Plus, Search, Send, Users, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, ChevronLeft, CircleUserRound, GalleryHorizontal, Grid2X2, Heart, ImagePlus, LockKeyhole, MessageCircle, Plus, Search, Send, Users, X } from 'lucide-react';
 
 export type ActiveTab = 'book' | 'gallery' | 'add' | 'friends' | 'me';
 
@@ -21,36 +21,37 @@ const gallery = [
 ];
 
 export function BottomNav({ active }: { active: ActiveTab }) {
-  const items: { key: ActiveTab; label: string; href: string; icon: typeof BookOpen }[] = [
-    { key: 'book', label: '架子', href: '/', icon: Grid2X2 },
-    { key: 'gallery', label: '相册', href: '/gallery', icon: GalleryHorizontal },
-    { key: 'add', label: '', href: '/add', icon: Plus },
-    { key: 'friends', label: '朋友', href: '/friends', icon: Users },
-    { key: 'me', label: '我的', href: '/me', icon: CircleUserRound }
+  const items: { key: ActiveTab; ariaLabel: string; href: string; icon: typeof BookOpen }[] = [
+    { key: 'book', ariaLabel: '打开首页', href: '/', icon: Grid2X2 },
+    { key: 'gallery', ariaLabel: '打开相册', href: '/gallery', icon: GalleryHorizontal },
+    { key: 'add', ariaLabel: '新增记录', href: '/add', icon: Plus },
+    { key: 'friends', ariaLabel: '打开朋友', href: '/friends', icon: Users },
+    { key: 'me', ariaLabel: '打开个人资料', href: '/me', icon: CircleUserRound }
   ];
-  return <nav className="bottom-nav"><div className="bottom-nav-inner">{items.map(({ key, label, href, icon: Icon }) => <Link key={key} className={`nav-item ${active === key ? 'active' : ''} ${key === 'add' ? 'nav-plus' : ''}`} href={href}><Icon />{label && <span>{label}</span>}</Link>)}</div></nav>;
+  return <nav className="bottom-nav" aria-label="主导航"><div className="bottom-nav-inner">{items.map(({ key, ariaLabel, href, icon: Icon }) => <Link key={key} className={`nav-item ${active === key ? 'active' : ''} ${key === 'add' ? 'nav-plus' : ''}`} href={href} aria-label={ariaLabel}><Icon aria-hidden="true" /></Link>)}</div></nav>;
 }
 
 export function PageFrame({ active, children, note }: { active: ActiveTab; children: React.ReactNode; note?: string }) {
   void note;
-  return <div className="shell"><header className="topbar"><Link href="/book" className="brand-mark" aria-label="打开时间线"><BookOpen className="brand-book-icon" size={23} strokeWidth={1.8} aria-hidden="true" /></Link></header><main className="shell-main">{children}</main><BottomNav active={active} /></div>;
+  return <div className="shell"><header className="topbar"><Link href="/book" className="brand-mark" aria-label="打开年表"><BookOpen className="brand-book-icon" size={23} strokeWidth={1.8} aria-hidden="true" /></Link></header><main className="shell-main">{children}</main><BottomNav active={active} /></div>;
 }
 
 export function BookView() {
   const [reading, setReading] = useState<string | null>(null);
   const event = events.find((item) => item.id === reading);
-  if (event) return <PageFrame active="book" note="时间线"><section className="reader"><div className="reader-head"><button className="reader-back" aria-label="返回" onClick={() => setReading(null)}><ChevronLeft size={16} /> 返回</button><span className="section-label">{event.date}</span></div><article className="reader-page parchment-page"><img className="reader-photo" src="https://images.unsplash.com/photo-1517299321609-52687d1bc55a?auto=format&fit=crop&w=1200&q=80" alt="" /><div className="reader-copy-block"><div className="reader-kicker">{event.time}</div><h1 className="reader-title">{event.title}</h1><p className="reader-copy">{event.excerpt}</p><footer className="reader-foot"><span>{event.people.length} 人</span><span>公开</span></footer></div></article></section></PageFrame>;
-  return <PageFrame active="book" note="时间线"><div className="section-head"><div><p className="section-label">时间线</p><h1 className="section-title">时间线</h1></div><span className="subtle">{events.length} 条</span></div><div className="timeline">{events.map((item) => <div className="timeline-group" key={item.id}><p className="timeline-date">{item.date}</p><button className="event-card card" onClick={() => setReading(item.id)}><div className="event-meta"><span>{item.time}</span><span>公开</span></div><h2 className="event-title">{item.title}</h2><p className="event-excerpt">{item.excerpt}</p><div className="event-foot"><div className="avatar-stack">{item.people.map((person) => <span className="avatar" key={person}>{person}</span>)}</div><span>打开 <ArrowRight size={14} style={{ verticalAlign: 'middle' }} /></span></div></button></div>)}</div></PageFrame>;
+  if (event) return <PageFrame active="book" note="按时间查看"><section className="reader"><div className="reader-head"><button className="reader-back" aria-label="返回" onClick={() => setReading(null)}><ChevronLeft size={19} /></button><span className="section-label">{event.date}</span></div><article className="reader-page parchment-page parchment-sheet"><img className="reader-photo parchment-image" src="https://images.unsplash.com/photo-1517299321609-52687d1bc55a?auto=format&fit=crop&w=1200&q=80" alt="" /><div className="reader-copy-block parchment-copy"><div className="reader-kicker">{event.time}</div><h1 className="reader-title">{event.title}</h1><p className="reader-copy">{event.excerpt}</p><footer className="reader-foot"><span>{event.people.length} 人</span><span>公开</span></footer></div></article></section></PageFrame>;
+  return <PageFrame active="book" note="按时间查看"><div className="section-head"><div><p className="section-label">按时间查看</p></div><span className="subtle">{events.length} 条</span></div><div className="timeline">{events.map((item) => <div className="timeline-group" key={item.id}><p className="timeline-date">{item.date}</p><button className="event-card card" onClick={() => setReading(item.id)}><div className="event-meta"><span>{item.time}</span><span>公开</span></div><h2 className="event-title">{item.title}</h2><p className="event-excerpt">{item.excerpt}</p><div className="event-foot"><div className="avatar-stack">{item.people.map((person) => <span className="avatar" key={person}>{person}</span>)}</div><span>打开 <ArrowRight size={14} style={{ verticalAlign: 'middle' }} /></span></div></button></div>)}</div></PageFrame>;
 }
 
 export function GalleryView() {
   const [liked, setLiked] = useState<number[]>([]);
-  return <PageFrame active="gallery" note="相册"><div className="section-head"><div><p className="section-label">公开</p><h1 className="section-title">相册</h1></div><Camera size={20} color="var(--gold-dark)" /></div><div className="gallery-grid">{gallery.map((item, index) => <article className="gallery-card card" key={item.title}><img className="gallery-image" src={item.image} alt={item.title} style={{ aspectRatio: item.ratio }} /><div className="gallery-body"><h2 className="gallery-title">{item.title}</h2><p className="gallery-copy">{item.copy}</p><div className="gallery-comment"><button aria-label="like" onClick={() => setLiked((list) => list.includes(index) ? list.filter((id) => id !== index) : [...list, index])} style={{ border: 0, background: 'transparent', color: liked.includes(index) ? '#b05646' : 'inherit', padding: 0 }}><Heart size={14} fill={liked.includes(index) ? 'currentColor' : 'none'} /></button><MessageCircle size={14} /> {item.comments} 条</div></div></article>)}</div></PageFrame>;
+  const columns = [gallery.filter((_, index) => index % 2 === 0), gallery.filter((_, index) => index % 2 === 1)];
+  return <PageFrame active="gallery" note="相册"><div className="gallery-masonry" aria-label="相册">{columns.map((items, columnIndex) => <div className="gallery-masonry-column" key={columnIndex}>{items.map((item) => { const index = gallery.indexOf(item); return <article className="gallery-card card" key={item.title}><img className="gallery-image" src={item.image} alt={item.title} style={{ aspectRatio: item.ratio }} /><div className="gallery-body"><h2 className="gallery-title">{item.title}</h2><p className="gallery-copy">{item.copy}</p><div className="gallery-comment"><button aria-label="标记喜欢" onClick={() => setLiked((list) => list.includes(index) ? list.filter((id) => id !== index) : [...list, index])} style={{ border: 0, background: 'transparent', color: liked.includes(index) ? '#b05646' : 'inherit', padding: 0 }}><Heart size={14} fill={liked.includes(index) ? 'currentColor' : 'none'} /></button><MessageCircle aria-hidden="true" size={14} /> {item.comments} 条</div></div></article>; })}</div>)}</div></PageFrame>;
 }
 
 export function AddStoryView() {
   const [submitted, setSubmitted] = useState(false);
-  if (submitted) return <PageFrame active="add" note="已保存"><div className="section-head"><div><p className="section-label">完成</p><h1 className="section-title">已保存</h1></div><Check color="var(--gold-dark)" /></div><div className="card" style={{ padding: 20 }}><p className="subtle">这条记录已保存。</p><div style={{ display: 'flex', gap: 9, marginTop: 18 }}><Link href="/book" className="btn btn-primary">打开时间线</Link><Link href="/add" className="btn btn-ghost" onClick={() => setSubmitted(false)}>再写一条</Link></div></div></PageFrame>;
+  if (submitted) return <PageFrame active="add" note="已保存"><div className="section-head"><div><p className="section-label">完成</p><h1 className="section-title">已保存</h1></div><Check color="var(--gold-dark)" /></div><div className="card" style={{ padding: 20 }}><p className="subtle">这条记录已保存。</p><div style={{ display: 'flex', gap: 9, marginTop: 18 }}><Link href="/book" className="btn btn-primary">按时间查看</Link><Link href="/add" className="btn btn-ghost" onClick={() => setSubmitted(false)}>再写一条</Link></div></div></PageFrame>;
   return <PageFrame active="add" note="新增"><div className="section-head"><div><p className="section-label">新增</p><h1 className="section-title">写一条</h1></div><ImagePlus size={21} color="var(--gold-dark)" /></div><form className="card" style={{ padding: 17 }} onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}><div className="form-grid"><div className="field"><label htmlFor="story-time">Time</label><input id="story-time" type="datetime-local" required /></div><div className="field"><label htmlFor="story-title">Event</label><input id="story-title" placeholder="给这件事一个名字" required /></div><div className="field"><label htmlFor="story-content">Content</label><textarea id="story-content" placeholder="写下当时发生了什么…" required /></div><div className="field"><label htmlFor="story-photos">Photos <span style={{ textTransform: 'none' }}>(optional)</span></label><input id="story-photos" type="file" accept="image/*" multiple /></div><div className="field"><label>Visibility</label><div className="visibility"><label><input type="radio" name="visibility" value="private" defaultChecked /><LockKeyhole size={15} /> Private</label><label><input type="radio" name="visibility" value="public" /><GalleryHorizontal size={15} /> Public</label></div></div><button className="btn btn-primary" type="submit">保存 <Send size={16} /></button></div></form></PageFrame>;
 }
 
