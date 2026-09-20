@@ -284,3 +284,120 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   .gallery-masonry .gallery-masonry-column{gap:10px}
   .gallery-masonry .gallery-card{border-radius:14px}
 }
+
+/* Final shelf/detail pass: physical cutouts on wood, then a centered paper
+   sheet with a separate scrollable reading/photo area. */
+.shelf-item{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  overflow:visible;
+}
+.shelf-item:hover{transform:translateY(-4px);box-shadow:none}
+.shelf-item:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+.shelf-item-image,
+.shelf-item-image.is-cutout{
+  position:relative;
+  display:flex;
+  width:100%;
+  height:100%;
+  align-items:flex-end;
+  justify-content:center;
+  overflow:visible;
+  background:transparent;
+  background-image:none;
+}
+.shelf-item-image img,
+.shelf-item-image.is-cutout img{
+  display:block;
+  width:100%;
+  height:100%;
+  padding:4px;
+  object-fit:contain;
+  object-position:center bottom;
+  mix-blend-mode:normal;
+  filter:none;
+}
+.shelf-empty{background:transparent;box-shadow:none}
+
+.reader-screen.parchment-screen{
+  min-height:100svh;
+  padding:0 18px 18px;
+  display:flex;
+  flex-direction:column;
+}
+.reader-screen.parchment-screen .reader-header{
+  flex:none;
+  width:min(680px,100%);
+  min-height:58px;
+  margin:0 auto;
+  padding:12px 0 10px;
+}
+.reader-screen.parchment-screen .reader-header .icon-button{align-self:flex-start}
+.reader-screen.parchment-screen .parchment-sheet{
+  width:min(680px,100%);
+  height:min(780px,calc(100svh - 82px));
+  min-height:460px;
+  margin:auto;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.object-display{
+  flex:0 0 clamp(190px,32vh,280px);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px 22px 8px;
+  background:rgba(235,202,149,.12);
+}
+.object-display img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center bottom;
+  mix-blend-mode:normal;
+  filter:none;
+}
+.reader-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-color:color-mix(in srgb,var(--ink) 38%,transparent) transparent;
+}
+.parchment-sheet .parchment-copy{
+  min-height:100%;
+  padding:22px 22px 36px;
+  background:transparent;
+}
+.parchment-sheet .parchment-copy h1{max-width:none}
+.story-photo-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:24px;
+}
+.story-photo-grid img{
+  display:block;
+  width:100%;
+  aspect-ratio:4 / 3;
+  object-fit:cover;
+  border:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
+  border-radius:10px;
+  filter:saturate(.72) sepia(.12);
+}
+@media(max-width:560px){
+  .reader-screen.parchment-screen{padding-left:12px;padding-right:12px}
+  .reader-screen.parchment-screen .parchment-sheet{height:min(760px,calc(100svh - 74px))}
+  .object-display{flex-basis:clamp(170px,29vh,235px);padding-left:14px;padding-right:14px}
+  .parchment-sheet .parchment-copy{padding:20px 18px 31px}
+}
+.object-display{min-height:0;overflow:hidden}
+.object-display img{min-height:0;max-height:100%}
+@media(max-width:560px){
+  .reader-screen.parchment-screen .parchment-sheet{height:min(700px,calc(100svh - 74px))}
+}
