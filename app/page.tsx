@@ -48,7 +48,7 @@ const stories: Story[] = [
 const gallery = stories.filter((story) => story.public);
 
 function Brand({ onBook }: { onBook: () => void }) {
-  return <div className="brand-mark"><button className="book-launch" onClick={onBook} aria-label="打开史书" title="史书"><BookOpen size={23} strokeWidth={1.8} aria-hidden="true" /></button><span><b>物语了</b><small>展架</small></span></div>;
+  return <div className="brand-mark"><button className="book-launch" onClick={onBook} aria-label="打开史书" title="史书"><BookOpen size={23} strokeWidth={1.8} aria-hidden="true" /></button></div>;
 }
 
 function NavItem({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label: string; onClick: () => void }) {

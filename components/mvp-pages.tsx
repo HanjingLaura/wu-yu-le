@@ -32,7 +32,7 @@ export function BottomNav({ active }: { active: ActiveTab }) {
 }
 
 export function PageFrame({ active, children, note }: { active: ActiveTab; children: React.ReactNode; note?: string }) {
-  return <div className="shell"><header className="topbar"><Link href="/book" className="brand-mark" aria-label="打开史书"><BookOpen className="brand-book-icon" size={23} strokeWidth={1.8} /><span><b>物语了</b><small>展架</small></span></Link><span className="topbar-note">{note ?? '展架'}</span></header><main className="shell-main">{children}</main><BottomNav active={active} /></div>;
+  return <div className="shell"><header className="topbar"><Link href="/book" className="brand-mark" aria-label="打开史书" title="史书"><BookOpen className="brand-book-icon" size={23} strokeWidth={1.8} aria-hidden="true" /></Link><span className="topbar-note">{note ?? '展架'}</span></header><main className="shell-main">{children}</main><BottomNav active={active} /></div>;
 }
 
 export function BookView() {
