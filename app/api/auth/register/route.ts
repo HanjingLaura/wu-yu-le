@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const mail = await sendTransactionalEmail({
       to: email,
       subject: "Verify your WuyuLe email",
-      text: `Welcome to 物语了 / WuyuLe. Verify your email here: ${verificationUrl}`,
+      text: `Welcome to WuyuLe. Verify your email here: ${verificationUrl}`,
     });
     return NextResponse.json({ ok: true, requiresVerification: true, ...(process.env.NODE_ENV !== "production" ? { verificationUrl, mailPreview: mail.preview } : {}) }, { status: 201 });
   } catch (error) {
