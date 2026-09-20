@@ -251,6 +251,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   opacity:.76;
 }
 .parchment-copy{background:rgba(233,202,148,.18)}
+.brand-mark{color:var(--ink);text-decoration:none}
 
 /* Two-column photo posts: each column flows naturally so image heights create
    the waterfall rhythm while the caption remains attached below its image. */
