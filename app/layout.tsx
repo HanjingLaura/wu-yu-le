@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "物语了 · WuyuLe",
-  description: "把那些差点无语的日子，写成以后会笑的故事。",
+  description: "个人故事展架。",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

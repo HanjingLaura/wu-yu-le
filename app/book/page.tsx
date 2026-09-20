@@ -1,2 +1,5 @@
-import { BookView } from '@/components/mvp-pages';
-export default function BookPage() { return <BookView />; }
+import { redirect } from "next/navigation";
+
+export default function BookPage() {
+  redirect("/?view=timeline");
+}
