@@ -115,7 +115,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 @media(min-width:721px){.app-shell,.shell,.reader-screen{border-radius:24px}.app-shell,.shell{margin-top:18px;margin-bottom:18px;min-height:calc(100svh - 36px)}.bottom-nav,.shell .bottom-nav{bottom:25px}.auth-page{min-height:100svh}}
 @media(max-width:560px){.bottom-nav,.shell .bottom-nav{bottom:10px;width:calc(100% - 20px)}.app-shell,.shell{padding-bottom:91px}.auth-card{padding-left:22px;padding-right:22px}.story-card img{width:23%;opacity:.11}}
 
-/* 展架首页 */
+/* 架子首页 */
 .book-launch{display:grid;place-items:center;width:38px;height:38px;padding:0;border:1px solid var(--ink);border-radius:50%;background:transparent;color:var(--ink)}
 .book-launch:hover{background:var(--paper-deep)}
 .brand-mark>span:last-child{gap:2px}
@@ -152,3 +152,18 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   .shelf-item-copy strong{font-size:14px}
   .shelf-row:after{right:-10px;left:-10px}
 }
+
+/* Transparent objects are shown against the paper shelf so the cutout edge stays visible. */
+.shelf-item-image{position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:var(--paper-deep)}
+.shelf-item-image img{height:100%;padding:0;object-fit:cover;mix-blend-mode:multiply;filter:saturate(.55) sepia(.23)}
+.shelf-item-image.is-cutout{background-image:linear-gradient(135deg,#f0d8aa 25%,transparent 25%),linear-gradient(225deg,#f0d8aa 25%,transparent 25%),linear-gradient(45deg,#f0d8aa 25%,transparent 25%),linear-gradient(315deg,#f0d8aa 25%,var(--paper-deep) 25%);background-position:10px 0,10px 0,0 0,0 0;background-size:20px 20px;background-repeat:repeat}
+.shelf-item-image.is-cutout img{padding:10px;object-fit:contain;mix-blend-mode:normal;filter:none}
+.shelf-item:disabled{cursor:default;opacity:1}
+.cutout-badge{position:absolute;right:6px;bottom:6px;padding:3px 5px;border:1px solid var(--ink);border-radius:999px;background:var(--surface);color:var(--ink);font:500 8px 'DM Mono',monospace;letter-spacing:.03em}
+.cutout-preview{display:flex;align-items:center;gap:12px;padding:10px;border:1.5px solid var(--ink);border-radius:12px;background-color:var(--paper-deep);background-image:linear-gradient(135deg,#f0d8aa 25%,transparent 25%),linear-gradient(225deg,#f0d8aa 25%,transparent 25%),linear-gradient(45deg,#f0d8aa 25%,transparent 25%),linear-gradient(315deg,#f0d8aa 25%,var(--paper-deep) 25%);background-position:10px 0,10px 0,0 0,0 0;background-size:20px 20px;background-repeat:repeat}
+.cutout-preview img{width:96px;height:96px;object-fit:contain;background:transparent}
+.cutout-status{font:500 10px/1.5 'DM Mono',monospace;color:var(--ink)}
+.cutout-status.processing{color:var(--muted)}
+.cutout-status.fallback{color:#7b4f2d}
+.form-error{margin:0;padding:8px 10px;border-radius:9px;background:#f1d0b2;color:#7b3f25;font-size:12px}
+.primary-button:disabled{cursor:wait;opacity:.6}
