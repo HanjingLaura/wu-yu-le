@@ -13,7 +13,7 @@ const stories: Story[] = [
 ];
 const gallery = stories.filter((story) => story.public);
 
-function Brand() { return <div className="brand-mark"><span className="brand-icon">语</span><span><b>物语了</b><small>WUYULE</small></span></div>; }
+function Brand() { return <div className="brand-mark"><span className="brand-icon">语</span><span><b>物语了</b><small>WuyuLe</small></span></div>; }
 function NavItem({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label: string; onClick: () => void }) { return <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>{icon}<span>{label}</span></button>; }
 
 export default function Home() {
