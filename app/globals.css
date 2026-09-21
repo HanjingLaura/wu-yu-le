@@ -123,12 +123,12 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 
 /* The detail sheet should read as aged parchment rather than a clean cream card. */
 .parchment-screen{background:linear-gradient(135deg,#d1ae76 0%,#e2c28e 47%,#cba16a 100%)}
-.parchment-sheet{position:relative;isolation:isolate;overflow:hidden;border:1px solid #9d754c;border-radius:13px 18px 11px 16px / 17px 11px 16px 12px;background-color:#d9b97f;background-image:radial-gradient(ellipse at 12% 10%,rgba(107,65,31,.34) 0 1px,transparent 2px),radial-gradient(ellipse at 78% 31%,rgba(128,78,36,.24) 0 2px,transparent 4px),radial-gradient(ellipse at 34% 84%,rgba(119,70,32,.2) 0 1px,transparent 3px),radial-gradient(ellipse at 78% 83%,rgba(255,237,193,.42) 0 15%,transparent 48%),linear-gradient(116deg,#d5ae72 0%,#ead09d 43%,#d0a66c 100%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)' opacity='.18'/%3E%3C/svg%3E");box-shadow:inset 0 0 30px rgba(91,52,24,.22),5px 8px 0 rgba(86,51,31,.14);animation:turn .36s ease}
+.parchment-sheet{position:relative;isolation:isolate;overflow:hidden;border:1px solid #9d754c;border-radius:13px 18px 11px 16px / 17px 11px 16px 12px;background-color:#d9b97f;background-image:radial-gradient(ellipse at 12% 10%,rgba(107,65,31,.34) 0 1px,transparent 2px),radial-gradient(ellipse at 78% 31%,rgba(128,78,36,.24) 0 2px,transparent 4px),radial-gradient(ellipse at 34% 84%,rgba(119,70,32,.2) 0 1px,transparent 3px),radial-gradient(ellipse at 78% 83%,rgba(255,237,193,.42) 0 15%,transparent 48%),linear-gradient(116deg,#d5ae72 0%,#ead09d 43%,#d0a66c 100%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)' opacity='.18'/%3E%3C/svg%3E");box-shadow:5px 8px 0 rgba(86,51,31,.14);animation:turn .36s ease}
 .parchment-sheet::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(167deg,transparent 0 82px,rgba(108,66,31,.07) 83px,transparent 86px),repeating-linear-gradient(12deg,transparent 0 123px,rgba(255,240,200,.1) 124px,transparent 128px);mix-blend-mode:multiply;opacity:.65}
-.parchment-sheet::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border:1px solid rgba(89,50,23,.15);box-shadow:inset 0 0 20px rgba(82,45,20,.2);border-radius:inherit}
+.parchment-sheet::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border:1px solid rgba(89,50,23,.15);box-shadow:none;border-radius:inherit}
 .parchment-sheet > *{position:relative;z-index:1}
 .parchment-image{border-radius:0;filter:saturate(.68) sepia(.2) contrast(.96)}
-.parchment-copy{background:rgba(239,211,160,.14)}
+.parchment-copy{background:none}
 
 /* Signup/login use the same paper and ink, without adding an illustration. */
 .auth-page{padding:24px 18px}
@@ -249,7 +249,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
     repeating-linear-gradient(9deg,transparent 0 137px,rgba(255,244,211,.13) 138px,transparent 142px);
   opacity:.76;
 }
-.parchment-copy{background:rgba(233,202,148,.18)}
+.parchment-copy{background:none}
 .brand-mark{color:var(--ink);text-decoration:none}
 
 /* Two-column photo posts: each column flows naturally so image heights create
@@ -378,8 +378,10 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   min-height:0;
 }
 .parchment-sheet .parchment-copy{
-  padding:16px 22px 52px;
-  background:transparent;
+  padding:16px 22px 28px;
+  background:none;
+  box-shadow:none;
+  border-radius:0;
 }
 .parchment-sheet .parchment-copy h1{max-width:none}
 .event-people{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.45}
@@ -398,66 +400,84 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   border-radius:10px;
   filter:saturate(.72) sepia(.12);
 }
+.reader-screen.parchment-screen .parchment-sheet{
+  box-shadow:5px 8px 0 rgba(86,51,31,.14);
+}
+.reader-screen.parchment-screen .parchment-sheet::after{
+  box-shadow:none;
+  background:none;
+}
 .event-social{
   display:flex;
   flex-direction:column;
-  gap:18px;
-  margin-top:28px;
-  padding:22px 0 6px;
+  gap:16px;
+  margin-top:22px;
+  padding:18px 0 8px;
+  border:0;
   border-top:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
+  border-radius:0;
+  background:none;
+  box-shadow:none;
 }
 .event-social .comment-row{
   margin:0;
-  gap:22px;
-  min-height:40px;
+  gap:18px;
+  min-height:36px;
   align-items:center;
+  background:none;
 }
 .event-social .comment-row button,
 .event-social .comment-count{
   display:flex;
   align-items:center;
-  gap:8px;
-  min-height:40px;
+  gap:7px;
+  min-height:36px;
   font:500 13px "DM Mono",monospace;
   color:var(--muted);
+  background:none;
 }
 .comment-row button.is-liked{color:var(--ink)}
 .event-social .comments{
   display:flex;
   flex-direction:column;
-  gap:14px;
+  gap:12px;
   margin:0;
-  padding:2px 0 0;
+  padding:0;
   border:0;
+  background:none;
+  box-shadow:none;
 }
 .event-social .comments p{
   margin:0;
-  font-size:14px;
-  line-height:1.65;
-  color:#5c4e40;
+  font:15px/1.7 "Noto Serif SC",serif;
+  color:var(--ink);
+  background:none;
 }
 .event-social .comment-input{
   align-items:center;
   gap:10px;
   margin:0;
-  min-height:48px;
-  padding:11px 14px;
-  border:1.5px solid color-mix(in srgb,var(--ink) 45%,transparent);
-  border-radius:12px;
-  background:color-mix(in srgb,var(--paper) 58%,white);
+  min-height:44px;
+  padding:8px 0 10px;
+  border:0;
+  border-bottom:1px solid color-mix(in srgb,var(--ink) 28%,transparent);
+  border-radius:0;
+  background:none;
+  box-shadow:none;
 }
 .event-social .comment-input input{
   padding:0;
   color:var(--ink);
   font-size:14px;
+  background:transparent;
 }
 @media(max-width:560px){
   .reader-screen.parchment-screen{padding-left:12px;padding-right:12px;padding-bottom:10px}
   .reader-screen.parchment-screen .parchment-sheet{height:auto;min-height:0}
   .object-display{padding-left:14px;padding-right:14px}
   .object-display img{height:clamp(124px,21vh,168px)}
-  .parchment-sheet .parchment-copy{padding:14px 18px 56px}
-  .event-social{gap:20px;margin-top:26px;padding-top:24px}
+  .parchment-sheet .parchment-copy{padding:14px 18px 24px}
+  .event-social{gap:14px;margin-top:18px;padding-top:16px}
 }
 
 /* Bottom navigation: a complete cream oval, with an independent + sitting on top. */

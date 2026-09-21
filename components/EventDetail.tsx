@@ -92,7 +92,7 @@ export default function EventDetail({
                 <Heart size={18} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" />
                 {social.likes}
               </button>
-              <span className="comment-count">
+              <span className="comment-count" aria-label={`评论 ${social.comments.length}`}>
                 <MessageCircle size={17} aria-hidden="true" />
                 {social.comments.length}
               </span>
@@ -103,7 +103,7 @@ export default function EventDetail({
               ))}
             </div>
             <form className="comment-input" onSubmit={submitComment}>
-              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写回应" aria-label="写回应" />
+              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写评论" aria-label="写评论" />
               <button type="submit" aria-label="发送"><Send size={16} /></button>
             </form>
           </div>

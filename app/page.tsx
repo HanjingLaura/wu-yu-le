@@ -227,7 +227,7 @@ function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: S
                       <button type="button" className={social.liked ? "is-liked" : ""} onClick={() => onToggleLike(story.id)} aria-pressed={social.liked} aria-label={social.liked ? "取消喜欢" : "喜欢"}>
                         <Heart size={15} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" /> {social.likes}
                       </button>
-                      <button type="button" onClick={() => onOpen(story)} aria-label="打开回应">
+                      <button type="button" onClick={() => onOpen(story)} aria-label="打开评论">
                         <MessageCircle size={15} aria-hidden="true" /> {social.comments.length}
                       </button>
                     </div>
