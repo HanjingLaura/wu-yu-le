@@ -67,7 +67,9 @@ export default function EventDetail({
           <p className="eyebrow">{story.day} · {story.date} · {story.public ? "公开" : "私藏"}</p>
           <h1>{story.title}</h1>
           {story.people.length > 0 ? <p className="event-people">{story.people.join(" · ")}</p> : null}
-          {story.excerpt ? <p className="lead">{story.excerpt}</p> : null}
+          {story.excerpt && story.excerpt !== story.content.replace(/\s+/g, " ").slice(0, 96) ? (
+            <p className="lead">{story.excerpt}</p>
+          ) : null}
           <div className="reader-copy">
             {story.content.split("\n").map((line, index) => (line ? <p key={index}>{line}</p> : null))}
           </div>
