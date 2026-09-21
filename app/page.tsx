@@ -12,10 +12,10 @@ import {
   Images,
   Layers,
   LogOut,
+  Heart,
   MessageCircle,
   Plus,
   Search,
-  Send,
   Settings,
   UserPlus,
   Users,
@@ -28,6 +28,7 @@ import {
   type ShelfObject,
   type Story,
 } from "@/lib/sample-shelf";
+import EventDetail, { defaultEventSocial, type EventSocial } from "@/components/EventDetail";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
 
@@ -51,7 +52,8 @@ export default function Home() {
   const [timeline, setTimeline] = useState(false);
   const [reader, setReader] = useState<{ story: Story; objectImage: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [commentStory, setCommentStory] = useState<number | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [socialById, setSocialById] = useState<Record<number, EventSocial>>({});
   const [notice, setNotice] = useState("");
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>(sampleObjects);
@@ -64,17 +66,57 @@ export default function Home() {
     if (view === "add") setShowAdd(true);
   }, []);
   const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2600); };
-  const openReader = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
-
-  if (reader) {
-    const { story, objectImage } = reader;
-    return <main className="reader-screen parchment-screen"><header className="reader-header"><button className="icon-button" onClick={() => setReader(null)} aria-label="返回"><ArrowLeft size={20}/></button><span aria-hidden="true" /></header><article className="parchment-sheet"><div className="object-display"><img src={objectImage} alt=""/></div><div className="reader-scroll"><div className="parchment-copy"><p className="eyebrow">{story.day} · {story.date}</p><h1>{story.title}</h1><p className="lead">{story.excerpt}</p><div className="reader-copy">{story.content.split("\n").map((line, index) => line ? <p key={index}>{line}</p> : null)}</div><div className="story-photo-grid" aria-label="趣事配图">{story.storyImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${story.title} 现场照片 ${index + 1}`}/>)}</div></div></div></article></main>;
-  }
+  const openEvent = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
+  const socialFor = (id: number) => socialById[id] ?? defaultEventSocial();
+  const toggleLike = (id: number) => {
+    setSocialById((current) => {
+      const now = current[id] ?? defaultEventSocial();
+      const liked = !now.liked;
+      return { ...current, [id]: { ...now, liked, likes: Math.max(0, now.likes + (liked ? 1 : -1)) } };
+    });
+  };
+  const addComment = (id: number, text: string) => {
+    setSocialById((current) => {
+      const now = current[id] ?? defaultEventSocial();
+      return { ...current, [id]: { ...now, comments: [...now.comments, { id: Date.now(), author: "Laura", text }] } };
+    });
+  };
 
   const addStory = (item: ShelfObject, story: Story) => {
     setShelfObjects((current) => [item, ...current]);
     setStories((current) => [story, ...current]);
   };
+  const saveEvent = (item: ShelfObject, story: Story) => {
+    setStories((current) => current.map((entry) => entry.id === story.id ? story : entry));
+    setShelfObjects((current) => current.map((entry) => entry.storyId === story.id ? { ...entry, date: item.date, title: item.title, objectImage: item.objectImage, people: item.people, cutout: item.cutout } : entry));
+    setReader({ story, objectImage: item.objectImage });
+  };
+
+  if (reader) {
+    const { story, objectImage } = reader;
+    return (
+      <>
+        <EventDetail
+          story={story}
+          objectImage={objectImage}
+          social={socialFor(story.id)}
+          onBack={() => { setShowEdit(false); setReader(null); }}
+          onToggleLike={() => toggleLike(story.id)}
+          onAddComment={(text) => addComment(story.id, text)}
+          onEdit={() => setShowEdit(true)}
+        />
+        {showEdit && (
+          <AddStory
+            initial={{ story, objectImage, item: shelfObjects.find((entry) => entry.storyId === story.id) }}
+            onClose={() => setShowEdit(false)}
+            onSave={saveEvent}
+            notify={notify}
+          />
+        )}
+        {notice && <div className="toast"><Check size={16} /> {notice}</div>}
+      </>
+    );
+  }
   const showShelfHeader = tab === "shelf" && !timeline && !showAdd;
   return (
     <main className={`app-shell${showShelfHeader ? "" : " app-shell-plain"}`}>
@@ -87,7 +129,7 @@ export default function Home() {
         </header>
       )}
       <div className="content-area">
-        {timeline ? <TimelineView stories={stories} onOpen={openReader} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openReader} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openEvent} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={toggleLike} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
       </div>
       <nav className="bottom-nav" aria-label="主导航">
         <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }} />
@@ -162,10 +204,42 @@ function TimelineView({ stories, onOpen, onBack }: { stories: Story[]; onOpen: (
   return <section className="view timeline-view"><div className="view-heading"><div><p className="eyebrow">2024</p></div><button className="icon-button" onClick={onBack} aria-label="返回"><ArrowLeft size={18}/></button></div><div className="timeline">{orderedStories.map((story, index) => <div className="timeline-row" key={story.id}><div className="date-rail"><strong>{story.date.split(" / ").slice(1).join("/")}</strong><span>{story.day}</span>{index !== orderedStories.length - 1 && <i/>}</div><button className={`story-card ${story.tone}`} onClick={() => onOpen(story)}><div className="card-copy"><span className="card-kicker">{story.public ? "公开" : "私藏"}</span><h2>{story.title}</h2><p>{story.excerpt}</p></div>{story.storyImages[0] ? <img src={story.storyImages[0]} alt=""/> : <span aria-hidden="true"/>}</button></div>)}</div></section>;
 }
 
-function GalleryView({ stories, onOpen, commentStory, setCommentStory, notify }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; commentStory: number | null; setCommentStory: (id: number | null) => void; notify: (message: string) => void }) {
+function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; socialById: Record<number, EventSocial>; onToggleLike: (id: number) => void }) {
   const gallery = stories.filter((story) => story.public && story.storyImages.length > 0);
   const columns = [gallery.filter((_, index) => index % 2 === 0), gallery.filter((_, index) => index % 2 === 1)];
-  return <section className="view gallery-view" aria-label="相册"><div className="masonry">{columns.map((items, columnIndex) => <div className="masonry-column" key={columnIndex}>{items.map((story) => { const index = gallery.indexOf(story); const image = story.storyImages[0]; return <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}><button className="image-button" onClick={() => onOpen(story)}><img src={image} alt={story.title} style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button><div className="gallery-meta"><p className="card-kicker">{story.date} · {story.people.join(" + ")}</p><h2>{story.title}</h2><p>{story.excerpt}</p><div className="comment-row"><button onClick={() => notify("已标记")} aria-label="标记"><span aria-hidden="true">♡</span> 12</button><button onClick={() => setCommentStory(commentStory === story.id ? null : story.id)}><MessageCircle size={15}/> {commentStory === story.id ? "收起" : "3"}</button></div>{commentStory === story.id && <div className="comments"><p><b>Mia</b> 我也记得。</p><p><b>Noah</b> 那晚很特别。</p><div className="comment-input"><input placeholder="写回应"/><button aria-label="发送" onClick={() => notify("已发送")}><Send size={14}/></button></div></div>}</div></article>; })}</div>)}</div></section>;
+  return (
+    <section className="view gallery-view" aria-label="相册">
+      <div className="masonry">
+        {columns.map((items, columnIndex) => (
+          <div className="masonry-column" key={columnIndex}>
+            {items.map((story) => {
+              const index = gallery.indexOf(story);
+              const image = story.storyImages[0];
+              const social = socialById[story.id] ?? defaultEventSocial();
+              return (
+                <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}>
+                  <button className="image-button" onClick={() => onOpen(story)}><img src={image} alt={story.title} style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button>
+                  <div className="gallery-meta">
+                    <p className="card-kicker">{story.date} · {story.people.join(" + ")}</p>
+                    <h2>{story.title}</h2>
+                    <p>{story.excerpt}</p>
+                    <div className="comment-row">
+                      <button type="button" className={social.liked ? "is-liked" : ""} onClick={() => onToggleLike(story.id)} aria-pressed={social.liked} aria-label={social.liked ? "取消喜欢" : "喜欢"}>
+                        <Heart size={15} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" /> {social.likes}
+                      </button>
+                      <button type="button" onClick={() => onOpen(story)} aria-label="打开评论">
+                        <MessageCircle size={15} aria-hidden="true" /> {social.comments.length}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function FriendsView({ notify }: { notify: (message: string) => void }) {
@@ -233,18 +307,43 @@ function formatStoryDay(value: string) {
   return weekday.toUpperCase();
 }
 
-function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (item: ShelfObject, story: Story) => void; notify: (message: string) => void }) {
-  const [visibility, setVisibility] = useState("PRIVATE");
-  const [date, setDate] = useState("2024-06-14");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [people, setPeople] = useState<string[]>([]);
+function parseInputDate(formatted: string) {
+  const parts = formatted.split(" / ");
+  if (parts.length === 3) return `${parts[0]}-${parts[1]}-${parts[2]}`;
+  return formatted.includes("-") ? formatted : "2024-06-14";
+}
+
+function matchedFriendName(name: string) {
+  const hit = SAMPLE_FRIENDS.find((friend) => friend.name === name || friend.name.startsWith(`${name} `) || friend.name.split(" ")[0] === name);
+  return hit?.name ?? name;
+}
+
+function AddStory({
+  onClose,
+  onAdd,
+  onSave,
+  notify,
+  initial,
+}: {
+  onClose: () => void;
+  onAdd?: (item: ShelfObject, story: Story) => void;
+  onSave?: (item: ShelfObject, story: Story) => void;
+  notify: (message: string) => void;
+  initial?: { story: Story; objectImage: string; item?: ShelfObject };
+}) {
+  const isEdit = Boolean(initial);
+  const [visibility, setVisibility] = useState(initial?.story.public ? "PUBLIC" : "PRIVATE");
+  const [date, setDate] = useState(initial ? parseInputDate(initial.story.date) : "2024-06-14");
+  const [title, setTitle] = useState(initial?.story.title ?? "");
+  const [content, setContent] = useState(initial?.story.content ?? "");
+  const [people, setPeople] = useState<string[]>(initial?.story.people.map(matchedFriendName) ?? []);
   const [pickingFriends, setPickingFriends] = useState(false);
   const [draftPeople, setDraftPeople] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState(initial?.objectImage || initial?.story.objectImage || "");
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
-  const [storyImages, setStoryImages] = useState<string[]>([]);
-  const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">("idle");
+  const [replacedObject, setReplacedObject] = useState(false);
+  const [storyImages, setStoryImages] = useState<string[]>(initial?.story.storyImages ?? []);
+  const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">(initial ? "ready" : "idle");
   const [error, setError] = useState("");
 
   const openFriendPicker = () => {
@@ -264,6 +363,7 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
     setCutoutStatus("processing");
     const sourceUrl = URL.createObjectURL(file);
     setImageUrl(sourceUrl);
+    setReplacedObject(true);
     try {
       const { removeBackground } = await import("@imgly/background-removal");
       const png = await removeBackground(file, {
@@ -294,23 +394,27 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!imageBlob || cutoutStatus === "processing") {
-      setError(cutoutStatus === "processing" ? "正在扣图，请稍等。" : "先添加一张照片。");
+    if (cutoutStatus === "processing") {
+      setError("正在扣图，请稍等。");
       return;
     }
-    const id = Date.now();
+    if (!imageUrl || (!isEdit && !imageBlob)) {
+      setError("先添加一张照片。");
+      return;
+    }
+    const id = initial?.story.id ?? Date.now();
     const normalizedTitle = title.trim();
     const normalizedContent = content.trim();
     const normalizedPeople = people;
     const formattedDate = formatShelfDate(date);
     const item: ShelfObject = {
-      id: `item-${id}`,
+      id: initial?.item?.id ?? `item-${id}`,
       storyId: id,
       date: formattedDate,
       title: normalizedTitle,
       objectImage: imageUrl,
       people: normalizedPeople,
-      cutout: cutoutStatus === "ready",
+      cutout: replacedObject ? cutoutStatus === "ready" : initial?.item?.cutout ?? cutoutStatus === "ready",
     };
     const story: Story = {
       id,
@@ -321,18 +425,24 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
       content: normalizedContent,
       objectImage: imageUrl,
       storyImages,
-      tone: "sand",
+      tone: initial?.story.tone ?? "sand",
       people: normalizedPeople,
       public: visibility === "PUBLIC",
     };
-    onAdd(item, story);
+    if (isEdit) {
+      onSave?.(item, story);
+      onClose();
+      notify("已保存");
+      return;
+    }
+    onAdd?.(item, story);
     onClose();
     notify(cutoutStatus === "ready" ? "透明物品已上架" : "已用居中裁切上架");
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <section className={`add-sheet${pickingFriends ? " is-picking" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <section className={`add-sheet${pickingFriends ? " is-picking" : ""}`} data-edit-sheet={isEdit ? "true" : undefined} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <button className="icon-button" onClick={onClose} aria-label="关闭"><X size={20} /></button>
         </div>
@@ -354,14 +464,16 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
           <span className="upload-box">
             <Camera size={19} aria-hidden="true" />
             <span className="upload-label">上传物品图片</span>
-            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required aria-label="上传物品图片" />
+            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required={!isEdit} aria-label="上传物品图片" />
           </span>
           {imageUrl && (
             <div className="cutout-preview">
               <img src={imageUrl} alt="" />
-              <span className={`cutout-status ${cutoutStatus}`}>
-                {cutoutStatus === "processing" ? "正在扣图…" : cutoutStatus === "ready" ? "透明 PNG 已生成" : cutoutStatus === "fallback" ? "自动扣图未完成，已用居中裁切" : "等待处理"}
-              </span>
+              {(replacedObject || cutoutStatus === "processing") && (
+                <span className={`cutout-status ${cutoutStatus}`}>
+                  {cutoutStatus === "processing" ? "正在扣图…" : cutoutStatus === "ready" ? "透明 PNG 已生成" : cutoutStatus === "fallback" ? "自动扣图未完成，已用居中裁切" : "等待处理"}
+                </span>
+              )}
             </div>
           )}
           <span className="upload-box">
@@ -379,7 +491,7 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
             <button type="button" className={visibility === "PRIVATE" ? "selected" : ""} onClick={() => setVisibility("PRIVATE")}>私藏</button>
             <button type="button" className={visibility === "PUBLIC" ? "selected" : ""} onClick={() => setVisibility("PUBLIC")}>公开</button>
           </div>
-          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>上架 <Check size={17} /></button>
+          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>{isEdit ? "保存" : "上架"} <Check size={17} /></button>
         </form>
         {pickingFriends && (
           <div className="friend-picker" role="dialog" aria-modal="true" aria-label="加入好友">
