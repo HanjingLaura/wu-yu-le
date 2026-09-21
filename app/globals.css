@@ -340,7 +340,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   padding:10px 0 8px;
   background:transparent;
 }
-.reader-screen.parchment-screen .reader-header .icon-button{align-self:flex-start}
+.reader-screen.parchment-screen .reader-header .icon-button{align-self:center}
 .reader-screen.parchment-screen .parchment-sheet{
   flex:1 1 0%;
   width:min(680px,100%);
@@ -382,6 +382,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   background:transparent;
 }
 .parchment-sheet .parchment-copy h1{max-width:none}
+.event-people{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.45}
 .story-photo-grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));

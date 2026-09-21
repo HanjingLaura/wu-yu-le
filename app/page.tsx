@@ -52,6 +52,7 @@ export default function Home() {
   const [timeline, setTimeline] = useState(false);
   const [reader, setReader] = useState<{ story: Story; objectImage: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [socialById, setSocialById] = useState<Record<number, EventSocial>>({});
   const [notice, setNotice] = useState("");
   const [stories, setStories] = useState<Story[]>(initialStories);
@@ -81,24 +82,41 @@ export default function Home() {
     });
   };
 
-  if (reader) {
-    const { story, objectImage } = reader;
-    return (
-      <EventDetail
-        story={story}
-        objectImage={objectImage}
-        social={socialFor(story.id)}
-        onBack={() => setReader(null)}
-        onToggleLike={() => toggleLike(story.id)}
-        onAddComment={(text) => addComment(story.id, text)}
-      />
-    );
-  }
-
   const addStory = (item: ShelfObject, story: Story) => {
     setShelfObjects((current) => [item, ...current]);
     setStories((current) => [story, ...current]);
   };
+  const saveEvent = (item: ShelfObject, story: Story) => {
+    setStories((current) => current.map((entry) => entry.id === story.id ? story : entry));
+    setShelfObjects((current) => current.map((entry) => entry.storyId === story.id ? { ...entry, date: item.date, title: item.title, objectImage: item.objectImage, people: item.people, cutout: item.cutout } : entry));
+    setReader({ story, objectImage: item.objectImage });
+  };
+
+  if (reader) {
+    const { story, objectImage } = reader;
+    return (
+      <>
+        <EventDetail
+          story={story}
+          objectImage={objectImage}
+          social={socialFor(story.id)}
+          onBack={() => { setShowEdit(false); setReader(null); }}
+          onToggleLike={() => toggleLike(story.id)}
+          onAddComment={(text) => addComment(story.id, text)}
+          onEdit={() => setShowEdit(true)}
+        />
+        {showEdit && (
+          <AddStory
+            initial={{ story, objectImage, item: shelfObjects.find((entry) => entry.storyId === story.id) }}
+            onClose={() => setShowEdit(false)}
+            onSave={saveEvent}
+            notify={notify}
+          />
+        )}
+        {notice && <div className="toast"><Check size={16} /> {notice}</div>}
+      </>
+    );
+  }
   const showShelfHeader = tab === "shelf" && !timeline && !showAdd;
   return (
     <main className={`app-shell${showShelfHeader ? "" : " app-shell-plain"}`}>
@@ -289,18 +307,43 @@ function formatStoryDay(value: string) {
   return weekday.toUpperCase();
 }
 
-function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (item: ShelfObject, story: Story) => void; notify: (message: string) => void }) {
-  const [visibility, setVisibility] = useState("PRIVATE");
-  const [date, setDate] = useState("2024-06-14");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [people, setPeople] = useState<string[]>([]);
+function parseInputDate(formatted: string) {
+  const parts = formatted.split(" / ");
+  if (parts.length === 3) return `${parts[0]}-${parts[1]}-${parts[2]}`;
+  return formatted.includes("-") ? formatted : "2024-06-14";
+}
+
+function matchedFriendName(name: string) {
+  const hit = SAMPLE_FRIENDS.find((friend) => friend.name === name || friend.name.startsWith(`${name} `) || friend.name.split(" ")[0] === name);
+  return hit?.name ?? name;
+}
+
+function AddStory({
+  onClose,
+  onAdd,
+  onSave,
+  notify,
+  initial,
+}: {
+  onClose: () => void;
+  onAdd?: (item: ShelfObject, story: Story) => void;
+  onSave?: (item: ShelfObject, story: Story) => void;
+  notify: (message: string) => void;
+  initial?: { story: Story; objectImage: string; item?: ShelfObject };
+}) {
+  const isEdit = Boolean(initial);
+  const [visibility, setVisibility] = useState(initial?.story.public ? "PUBLIC" : "PRIVATE");
+  const [date, setDate] = useState(initial ? parseInputDate(initial.story.date) : "2024-06-14");
+  const [title, setTitle] = useState(initial?.story.title ?? "");
+  const [content, setContent] = useState(initial?.story.content ?? "");
+  const [people, setPeople] = useState<string[]>(initial?.story.people.map(matchedFriendName) ?? []);
   const [pickingFriends, setPickingFriends] = useState(false);
   const [draftPeople, setDraftPeople] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState(initial?.objectImage || initial?.story.objectImage || "");
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
-  const [storyImages, setStoryImages] = useState<string[]>([]);
-  const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">("idle");
+  const [replacedObject, setReplacedObject] = useState(false);
+  const [storyImages, setStoryImages] = useState<string[]>(initial?.story.storyImages ?? []);
+  const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">(initial ? "ready" : "idle");
   const [error, setError] = useState("");
 
   const openFriendPicker = () => {
@@ -320,6 +363,7 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
     setCutoutStatus("processing");
     const sourceUrl = URL.createObjectURL(file);
     setImageUrl(sourceUrl);
+    setReplacedObject(true);
     try {
       const { removeBackground } = await import("@imgly/background-removal");
       const png = await removeBackground(file, {
@@ -350,23 +394,27 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!imageBlob || cutoutStatus === "processing") {
-      setError(cutoutStatus === "processing" ? "正在扣图，请稍等。" : "先添加一张照片。");
+    if (cutoutStatus === "processing") {
+      setError("正在扣图，请稍等。");
       return;
     }
-    const id = Date.now();
+    if (!imageUrl || (!isEdit && !imageBlob)) {
+      setError("先添加一张照片。");
+      return;
+    }
+    const id = initial?.story.id ?? Date.now();
     const normalizedTitle = title.trim();
     const normalizedContent = content.trim();
     const normalizedPeople = people;
     const formattedDate = formatShelfDate(date);
     const item: ShelfObject = {
-      id: `item-${id}`,
+      id: initial?.item?.id ?? `item-${id}`,
       storyId: id,
       date: formattedDate,
       title: normalizedTitle,
       objectImage: imageUrl,
       people: normalizedPeople,
-      cutout: cutoutStatus === "ready",
+      cutout: replacedObject ? cutoutStatus === "ready" : initial?.item?.cutout ?? cutoutStatus === "ready",
     };
     const story: Story = {
       id,
@@ -377,18 +425,24 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
       content: normalizedContent,
       objectImage: imageUrl,
       storyImages,
-      tone: "sand",
+      tone: initial?.story.tone ?? "sand",
       people: normalizedPeople,
       public: visibility === "PUBLIC",
     };
-    onAdd(item, story);
+    if (isEdit) {
+      onSave?.(item, story);
+      onClose();
+      notify("已保存");
+      return;
+    }
+    onAdd?.(item, story);
     onClose();
     notify(cutoutStatus === "ready" ? "透明物品已上架" : "已用居中裁切上架");
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <section className={`add-sheet${pickingFriends ? " is-picking" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <section className={`add-sheet${pickingFriends ? " is-picking" : ""}`} data-edit-sheet={isEdit ? "true" : undefined} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <button className="icon-button" onClick={onClose} aria-label="关闭"><X size={20} /></button>
         </div>
@@ -410,14 +464,16 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
           <span className="upload-box">
             <Camera size={19} aria-hidden="true" />
             <span className="upload-label">上传物品图片</span>
-            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required aria-label="上传物品图片" />
+            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required={!isEdit} aria-label="上传物品图片" />
           </span>
           {imageUrl && (
             <div className="cutout-preview">
               <img src={imageUrl} alt="" />
-              <span className={`cutout-status ${cutoutStatus}`}>
-                {cutoutStatus === "processing" ? "正在扣图…" : cutoutStatus === "ready" ? "透明 PNG 已生成" : cutoutStatus === "fallback" ? "自动扣图未完成，已用居中裁切" : "等待处理"}
-              </span>
+              {(replacedObject || cutoutStatus === "processing") && (
+                <span className={`cutout-status ${cutoutStatus}`}>
+                  {cutoutStatus === "processing" ? "正在扣图…" : cutoutStatus === "ready" ? "透明 PNG 已生成" : cutoutStatus === "fallback" ? "自动扣图未完成，已用居中裁切" : "等待处理"}
+                </span>
+              )}
             </div>
           )}
           <span className="upload-box">
@@ -435,7 +491,7 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
             <button type="button" className={visibility === "PRIVATE" ? "selected" : ""} onClick={() => setVisibility("PRIVATE")}>私藏</button>
             <button type="button" className={visibility === "PUBLIC" ? "selected" : ""} onClick={() => setVisibility("PUBLIC")}>公开</button>
           </div>
-          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>上架 <Check size={17} /></button>
+          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>{isEdit ? "保存" : "上架"} <Check size={17} /></button>
         </form>
         {pickingFriends && (
           <div className="friend-picker" role="dialog" aria-modal="true" aria-label="加入好友">
