@@ -470,7 +470,8 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   box-shadow:0 6px 16px #35291e33;
   transform:translateY(-15px);
 }
-.shelf-sentinel{height:1px;pointer-events:none}
+.sheet-head{align-items:center;margin-bottom:16px}
+.sheet-head .eyebrow{margin:0}
 .toast{bottom:108px}
 @media(min-width:721px){
   .bottom-nav,.shell .bottom-nav{bottom:22px}
