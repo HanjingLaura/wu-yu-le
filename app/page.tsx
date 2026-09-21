@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import {
   ArrowLeft,
@@ -23,47 +23,15 @@ import {
   Users,
   X,
 } from "lucide-react";
+import {
+  initialStories,
+  makePlaceholderBatch,
+  sampleObjects,
+  type ShelfObject,
+  type Story,
+} from "@/lib/sample-shelf";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
-type Story = {
-  id: number;
-  date: string;
-  day: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  objectImage: string;
-  storyImages: string[];
-  tone: string;
-  people: string[];
-  public: boolean;
-};
-
-type ShelfObject = {
-  id: string;
-  storyId?: number;
-  date: string;
-  title: string;
-  objectImage: string;
-  people: string[];
-  cutout: boolean;
-};
-
-const initialStories: Story[] = [
-  { id: 1, date: "2024 / 06 / 14", day: "FRI", title: "便利店门口", excerpt: "买水时遇到一只猫。", content: "雨停在便利店门口。\n\n橘猫从纸箱里探出头，我们在门边站了十分钟。后来把伞借给了没有伞的人。\n\n店里的灯刚好亮起来，潮湿的街道也跟着亮了一小块。我们把这段偶遇记在了当天的纸页上。", objectImage: "/objects/blue-mug.png", storyImages: ["https://images.unsplash.com/photo-1514897575457-c4db467cf78e?auto=format&fit=crop&w=900&q=80", "https://images.unsplash.com/photo-1519052537078-e6302a4968d4?auto=format&fit=crop&w=900&q=80"], tone: "ochre", people: ["你", "Mia"], public: true },
-  { id: 2, date: "2024 / 05 / 28", day: "TUE", title: "末班车", excerpt: "车没来，我们走回家。", content: "末班车开走之后，站台安静下来。\n\n我们交换了耳机里的歌，沿着熟悉的路走到天亮前。", objectImage: "/objects/red-book.png", storyImages: ["https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=900&q=80"], tone: "clay", people: ["你", "Noah", "June"], public: true },
-  { id: 3, date: "2024 / 05 / 03", day: "FRI", title: "面包店", excerpt: "周五，买到热面包。", content: "我们在周五下午排队买面包。\n\n老板多送了一块曲奇，烤箱响了一声，下午就有了形状。", objectImage: "/objects/camera.png", storyImages: ["https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80"], tone: "sand", people: ["你", "Kai"], public: false },
-  { id: 4, date: "2024 / 04 / 19", day: "FRI", title: "窗台的风", excerpt: "下午的风吹动了窗帘。", content: "窗台上的影子慢慢移到墙角。\n\n我们把一小盆薄荷放到光里，屋里多了一点清新的气味。", objectImage: "/objects/mint-pot.png", storyImages: ["https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=900&q=80"], tone: "sand", people: ["你"], public: false },
-];
-const sampleObjects: ShelfObject[] = initialStories.map((story) => ({
-  id: `story-${story.id}`,
-  storyId: story.id,
-  date: story.date,
-  title: story.title,
-  objectImage: story.objectImage,
-  people: story.people,
-  cutout: true,
-}));
 
 function Brand({ onBook }: { onBook: () => void }) {
   return <div className="brand-mark"><button className="book-launch" onClick={onBook} aria-label="打开年表"><BookOpen size={23} strokeWidth={1.8} aria-hidden="true" /></button></div>;
@@ -105,10 +73,57 @@ export default function Home() {
   return <main className="app-shell"><header className="topbar"><Brand onBook={() => { setTimeline(true); setTab("shelf"); }}/><div className="top-actions"><button className="round-action" aria-label="搜索" onClick={() => notify("搜索功能即将开放")}><Search size={18}/></button><button className="avatar" onClick={() => setTab("me")} aria-label="打开个人资料">L</button></div></header><div className="content-area">{timeline ? <TimelineView stories={stories} onOpen={openReader} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openReader} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify}/> : tab === "friends" ? <FriendsView notify={notify}/> : <MeView notify={notify}/>}</div><nav className="bottom-nav" aria-label="主导航"><NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20}/>} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }}/><NavItem active={tab === "gallery"} icon={<Images size={20}/>} label="打开相册" onClick={() => { setTab("gallery"); setTimeline(false); }}/><button className="add-button" onClick={() => setShowAdd(true)} aria-label="新增物品"><Plus size={26}/></button><NavItem active={tab === "friends"} icon={<Users size={20}/>} label="打开朋友" onClick={() => { setTab("friends"); setTimeline(false); }}/><NavItem active={tab === "me"} icon={<CircleUserRound size={20}/>} label="打开个人资料" onClick={() => { setTab("me"); setTimeline(false); }}/></nav>{showAdd && <AddStory onClose={() => setShowAdd(false)} onAdd={addStory} notify={notify}/>} {notice && <div className="toast"><Check size={16}/> {notice}</div>}</main>;
 }
 
-function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
+function chunkRows(items: ShelfObject[]) {
   const rows: ShelfObject[][] = [];
   for (let index = 0; index < items.length; index += 4) rows.push(items.slice(index, index + 4));
-  return <section className="view shelf-view" aria-label="物品架"><div className="shelf-rack">{rows.map((row, index) => <div className={`shelf-row ${index === 0 ? "shelf-row-top" : "shelf-row-bottom"}`} key={row.map((item) => item.id).join("-")}>{row.map((item) => <ShelfItem key={item.id} item={item} stories={stories} onOpen={onOpen}/>)}{row.length < 4 && <button className="shelf-empty" onClick={onAdd} aria-label="添加物品"><Plus size={19}/></button>}{row.length < 3 && <button className="shelf-empty" onClick={onAdd} aria-label="添加物品"><Plus size={19}/></button>}{row.length < 2 && <button className="shelf-empty" onClick={onAdd} aria-label="添加物品"><Plus size={19}/></button>}</div>)}{items.length === 0 && <div className="shelf-row shelf-row-bottom">{Array.from({ length: 4 }, (_, index) => <button className="shelf-empty" key={index} onClick={onAdd} aria-label="添加物品"><Plus size={19}/></button>)}</div>}</div></section>;
+  return rows;
+}
+
+function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
+  const [extras, setExtras] = useState<{ items: ShelfObject[]; stories: Story[] }>({ items: [], stories: [] });
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const displayedItems = [...items, ...extras.items];
+  const displayedStories = [...stories, ...extras.stories];
+  const rows = chunkRows(displayedItems);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    let locked = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting || locked) return;
+      locked = true;
+      setExtras((current) => {
+        if (current.items.length >= 160) return current;
+        const next = makePlaceholderBatch(items.length + current.items.length);
+        return { items: [...current.items, ...next.items], stories: [...current.stories, ...next.stories] };
+      });
+      window.setTimeout(() => { locked = false; }, 480);
+    }, { root: null, rootMargin: "360px 0px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [items.length]);
+
+  return (
+    <section className="view shelf-view" aria-label="物品架">
+      <div className="shelf-rack">
+        {rows.map((row, index) => (
+          <div className={`shelf-row ${index === 0 ? "shelf-row-top" : "shelf-row-bottom"}`} key={row.map((item) => item.id).join("-")}>
+            {row.map((item) => <ShelfItem key={item.id} item={item} stories={displayedStories} onOpen={onOpen} />)}
+            {row.length < 4 && Array.from({ length: 4 - row.length }, (_, empty) => (
+              <button className="shelf-empty" key={`empty-${index}-${empty}`} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>
+            ))}
+          </div>
+        ))}
+        {displayedItems.length === 0 && (
+          <div className="shelf-row shelf-row-bottom">
+            {Array.from({ length: 4 }, (_, index) => <button className="shelf-empty" key={index} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>)}
+          </div>
+        )}
+      </div>
+      <div ref={sentinelRef} className="shelf-sentinel" aria-hidden="true" />
+    </section>
+  );
 }
 
 function ShelfItem({ item, stories, onOpen }: { item: ShelfObject; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void }) { const story = item.storyId ? stories.find((entry) => entry.id === item.storyId) : { id: 0, date: item.date, day: "", title: item.title, excerpt: "", content: "", objectImage: item.objectImage, storyImages: [], tone: "", people: item.people, public: false }; return <button className="shelf-item" onClick={() => story && onOpen(story, item.objectImage)} aria-label="打开物品"><span className={`shelf-item-image ${item.cutout ? "is-cutout" : ""}`}><img src={item.objectImage} alt=""/></span></button>; }
