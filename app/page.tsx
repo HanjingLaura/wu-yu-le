@@ -12,7 +12,6 @@ import {
   Images,
   Layers,
   LogOut,
-  Mail,
   MessageCircle,
   Plus,
   Search,
@@ -69,7 +68,31 @@ export default function Home() {
     setShelfObjects((current) => [item, ...current]);
     setStories((current) => [story, ...current]);
   };
-  return <main className="app-shell"><header className="topbar"><Brand onBook={() => { setTimeline(true); setTab("shelf"); }}/><div className="top-actions"><button className="round-action" aria-label="搜索" onClick={() => notify("搜索功能即将开放")}><Search size={18}/></button><button className="avatar" onClick={() => setTab("me")} aria-label="打开个人资料">L</button></div></header><div className="content-area">{timeline ? <TimelineView stories={stories} onOpen={openReader} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openReader} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify}/> : tab === "friends" ? <FriendsView notify={notify}/> : <MeView notify={notify}/>}</div><nav className="bottom-nav" aria-label="主导航"><NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20}/>} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }}/><NavItem active={tab === "gallery"} icon={<Images size={20}/>} label="打开相册" onClick={() => { setTab("gallery"); setTimeline(false); }}/><button className="add-button" onClick={() => setShowAdd(true)} aria-label="新增物品"><Plus size={24}/></button><NavItem active={tab === "friends"} icon={<Users size={20}/>} label="打开朋友" onClick={() => { setTab("friends"); setTimeline(false); }}/><NavItem active={tab === "me"} icon={<CircleUserRound size={20}/>} label="打开个人资料" onClick={() => { setTab("me"); setTimeline(false); }}/></nav>{showAdd && <AddStory onClose={() => setShowAdd(false)} onAdd={addStory} notify={notify}/>} {notice && <div className="toast"><Check size={16}/> {notice}</div>}</main>;
+  const showShelfHeader = tab === "shelf" && !timeline && !showAdd;
+  return (
+    <main className={`app-shell${showShelfHeader ? "" : " app-shell-plain"}`}>
+      {showShelfHeader && (
+        <header className="topbar">
+          <Brand onBook={() => { setTimeline(true); setTab("shelf"); }} />
+          <div className="top-actions">
+            <button className="round-action" aria-label="搜索" onClick={() => notify("搜索功能即将开放")}><Search size={18} /></button>
+          </div>
+        </header>
+      )}
+      <div className="content-area">
+        {timeline ? <TimelineView stories={stories} onOpen={openReader} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openReader} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+      </div>
+      <nav className="bottom-nav" aria-label="主导航">
+        <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }} />
+        <NavItem active={tab === "gallery"} icon={<Images size={20} />} label="打开相册" onClick={() => { setTab("gallery"); setTimeline(false); }} />
+        <button className="add-button" onClick={() => setShowAdd(true)} aria-label="新增物品"><Plus size={24} /></button>
+        <NavItem active={tab === "friends"} icon={<Users size={20} />} label="打开朋友" onClick={() => { setTab("friends"); setTimeline(false); }} />
+        <NavItem active={tab === "me"} icon={<CircleUserRound size={20} />} label="打开个人资料" onClick={() => { setTab("me"); setTimeline(false); }} />
+      </nav>
+      {showAdd && <AddStory onClose={() => setShowAdd(false)} onAdd={addStory} notify={notify} />}
+      {notice && <div className="toast"><Check size={16} /> {notice}</div>}
+    </main>
+  );
 }
 
 function chunkRows(items: ShelfObject[]) {
@@ -147,10 +170,10 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
   ];
   return (
     <section className="view friends-view" aria-label="朋友">
-      <div className="view-heading view-heading-end">
-        <button className="add-friend" onClick={() => notify("邀请链接已复制")} aria-label="邀请"><UserPlus size={17} /></button>
+      <div className="friends-toolbar">
+        <button className="add-friend" onClick={() => notify("邀请链接已复制")} aria-label="邀请"><UserPlus size={18} /></button>
+        <div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索姓名" aria-label="搜索姓名" /></div>
       </div>
-      <div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索姓名" aria-label="搜索姓名" /></div>
       <div className="friend-list">
         {people.filter((p) => `${p.name} ${p.handle}`.toLowerCase().includes(query.toLowerCase())).map((person) => (
           <div className="friend-row" key={person.handle}>
@@ -167,11 +190,7 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
 function MeView({ notify }: { notify: (message: string) => void }) {
   return (
     <section className="view me-view" aria-label="个人资料">
-      <div className="view-heading view-heading-end">
-        <button className="icon-button" onClick={() => notify("设置功能即将开放")} aria-label="设置"><Settings size={19} /></button>
-      </div>
       <div className="profile-card">
-        <span className="profile-avatar">L</span>
         <div><h2>Laura Hanjing</h2><p>@laura · 2024</p></div>
         <button className="quiet-button" onClick={() => notify("资料编辑功能即将开放")}>编辑</button>
       </div>
@@ -181,7 +200,7 @@ function MeView({ notify }: { notify: (message: string) => void }) {
         <div><strong>04</strong><span>朋友</span></div>
       </div>
       <div className="settings-list">
-        <button onClick={() => notify("邮箱已验证")}><Mail size={18} /><span>laura@example.com</span><Check size={17} /></button>
+        <button onClick={() => notify("设置功能即将开放")}><Settings size={18} /><span>设置</span><ChevronRight size={17} /></button>
         <button onClick={() => signOut({ callbackUrl: "/login" })}><LogOut size={18} /><span>退出</span><ChevronRight size={17} /></button>
       </div>
     </section>
