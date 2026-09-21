@@ -424,8 +424,8 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   display:flex;
   width:100%;
   margin:0;
-  gap:8px;
-  min-height:36px;
+  gap:16px;
+  min-height:40px;
   align-items:center;
   background:none;
 }
@@ -434,11 +434,18 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   display:flex;
   flex:none;
   align-items:center;
-  gap:5px;
-  min-height:36px;
-  font:500 12px "DM Mono",monospace;
+  gap:8px;
+  height:40px;
+  min-height:40px;
+  padding:0;
+  font:500 12px/1 "DM Mono",monospace;
   color:var(--muted);
   background:none;
+}
+.event-social .comment-row > button svg,
+.event-social .comment-count svg{
+  display:block;
+  flex:none;
 }
 .comment-row button.is-liked{color:var(--ink)}
 .event-social .comments{
@@ -461,13 +468,14 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   display:flex;
   flex:1;
   align-items:center;
-  gap:6px;
+  gap:10px;
   min-width:0;
-  min-height:36px;
+  height:40px;
+  min-height:40px;
   margin:0;
-  padding:0 0 4px;
+  padding:0;
   border:0;
-  border-bottom:1px solid color-mix(in srgb,var(--ink) 28%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--ink) 16%,transparent);
   border-radius:0;
   background:none;
   box-shadow:none;
@@ -475,17 +483,28 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .event-social .comment-input input{
   min-width:0;
   flex:1;
+  height:18px;
   padding:0;
-  color:var(--ink);
-  font-size:13px;
-  line-height:1.3;
+  color:var(--muted);
+  font:400 12px/18px "DM Sans",sans-serif;
   background:transparent;
 }
+.event-social .comment-input input::placeholder{
+  color:var(--muted);
+  opacity:.72;
+}
 .event-social .comment-input button{
-  width:auto;
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
   min-height:0;
   padding:0;
   flex:none;
+  color:var(--muted);
+}
+.event-social .comment-input button svg{
+  display:block;
 }
 @media(max-width:560px){
   .reader-screen.parchment-screen{padding-left:12px;padding-right:12px;padding-bottom:10px}
