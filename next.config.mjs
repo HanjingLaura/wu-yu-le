@@ -7,8 +7,10 @@ const nextConfig = {
   basePath,
   // Portfolio uses trailingSlash: true and rewrites to `/wuyule/`. Default Next
   // 308s `/wuyule/` → `/wuyule`, which the browser applies on the portfolio host
-  // and loops. Serve the trailing-slash URL with 200 instead.
+  // and loops. Serve `/wuyule/` with 200. skipTrailingSlashRedirect keeps
+  // NextAuth `/api/auth/*` (no slash) from 308ing to a slashed URL.
   trailingSlash: true,
+  skipTrailingSlashRedirect: true,
   images: { remotePatterns: [{ protocol: 'https', hostname: '**' }] },
   webpack(config) {
     // @imgly/background-removal is loaded only from a browser event. Keep
