@@ -2,7 +2,7 @@
 
 物语了（WuyuLe）是一个手机优先的趣事记录本：把文字和照片收进史书，公开的故事进入 Gallery，也可以和朋友共同参与一件事。
 
-应用使用 Next.js `basePath` `/wuyule`，便于挂在作品集 `https://hanjing-laura.vercel.app/wuyule`（或项目自身域名下的同一路径）。本地开发请打开 <http://localhost:3000/wuyule>。
+应用使用 Next.js `basePath` `/wuyule`（`trailingSlash: true`），便于挂在作品集 `https://hanjing-laura.vercel.app/wuyule/`（或项目自身域名下的同一路径）。本地开发请打开 <http://localhost:3000/wuyule/>。
 
 ## 本地运行
 
@@ -20,7 +20,7 @@ npm run db:seed           # 可选：写入演示账号和一条 Public 故事
 npm run dev
 ```
 
-打开 <http://localhost:3000/wuyule>。生产构建可用 `npm run build && npm start`（无真实数据库时，构建会使用占位 `DATABASE_URL` 只做 `prisma generate`）。提交前可运行 `npm run typecheck`。
+打开 <http://localhost:3000/wuyule/>（`/wuyule` 与 `/wuyule/` 均返回 200）。生产构建可用 `npm run build && npm start`（无真实数据库时，构建会使用占位 `DATABASE_URL` 只做 `prisma generate`）。提交前可运行 `npm run typecheck`。
 
 ## 部署（Vercel）
 
@@ -32,7 +32,7 @@ npm run dev
    不要把未使用的主机写死在代码里。
 4. 首次上线后对生产库执行 `prisma db push` 或迁移（在本地指向生产 URL，或用 Vercel 的一次-off 命令）。
 
-作品集仓库需把 `/wuyule`、`/wuyule/:path*` rewrite 到 `https://wu-yu-le.vercel.app/wuyule/`（与 `/A-le-ge-I` 一样，destination 带 basePath）。
+作品集仓库需把 `/wuyule`、`/wuyule/:path*` rewrite 到 `https://wu-yu-le.vercel.app/wuyule/`（与 `/A-le-ge-I` 一样，destination 带 basePath）。本应用 `trailingSlash: true` 且 `skipTrailingSlashRedirect: true`，因此 `/wuyule/` 返回 200，不会再 308 回 `/wuyule` 与作品集互相跳转；Auth.js 的 `/api/auth/*` 也不会被改写成带斜杠的地址。
 
 ## 环境变量
 
