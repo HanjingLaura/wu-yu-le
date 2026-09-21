@@ -1,2 +1,5 @@
-import { AddStoryView } from '@/components/mvp-pages';
-export default function AddPage() { return <AddStoryView />; }
+import { redirect } from "next/navigation";
+
+export default function AddPage() {
+  redirect("/?view=add");
+}

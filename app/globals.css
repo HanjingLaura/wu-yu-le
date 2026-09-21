@@ -35,7 +35,6 @@
 .form-grid{display:flex;flex-direction:column;gap:17px}.field{display:flex;flex-direction:column;gap:7px}.field>label,.field>span,.form-grid>.field>label{color:var(--muted);font:500 10px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase}.field input,.field textarea{width:100%;border:1px solid var(--line);background:#fffaf1;color:var(--ink);outline:0;padding:11px 12px;font-size:14px}.field textarea{min-height:120px;resize:vertical;line-height:1.55}.visibility{display:grid;grid-template-columns:1fr 1fr;gap:8px}.visibility label{display:flex;align-items:center;gap:7px;padding:11px;border:1px solid var(--line);background:#fffaf1;color:var(--ink);font:500 10px 'DM Mono',monospace}.visibility input{accent-color:var(--ink)}
 .shell .friend-list{border-top:0;display:flex;flex-direction:column;gap:9px}.shell .friend-row{display:flex;align-items:center;gap:11px;padding:13px 12px;border:1px solid var(--line);background:#fffaf1}.friend-avatar{display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:50%;background:var(--paper-deep);font:500 11px 'DM Mono',monospace}.friend-info{display:flex;flex:1;flex-direction:column;gap:4px}.friend-name{margin:0;font-size:13px}.friend-handle{color:var(--muted);font:10px 'DM Mono',monospace}.friend-action{border:0;background:transparent;color:var(--muted);font:500 9px 'DM Mono',monospace;letter-spacing:.06em}
 .shell .profile-card{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 12px;margin-top:4px;padding:18px 0;border-bottom:1px solid var(--line);box-shadow:none;background:transparent;border-left:0;border-right:0;border-top:0}.shell .profile-name{margin:0;font:600 18px 'Noto Serif SC',serif}.shell .profile-handle{grid-column:2;margin:0;color:var(--muted);font:10px 'DM Mono',monospace}.profile-stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;padding-top:15px;border-top:1px solid var(--line)}.profile-stats div{text-align:center;border-right:1px solid var(--line)}.profile-stats div:last-child{border-right:0}.profile-stats strong{display:block;font:600 21px 'DM Mono',monospace}.profile-stats span{color:var(--muted);font:9px 'DM Mono',monospace}
-.auth-screen{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:30px 22px;background:var(--paper)}.auth-shell{width:min(420px,100%);padding:27px 24px;background:#fffaf1;border:1px solid var(--line);box-shadow:5px 7px 0 #a48b6a22}.auth-shell .auth-brand{display:flex;align-items:center;gap:9px;margin-bottom:25px}.auth-shell .auth-brand>span{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--ink);font:600 16px 'Noto Serif SC',serif}.auth-shell .auth-brand b{font:600 19px 'Noto Serif SC',serif}.auth-shell .auth-brand small{margin-left:2px;color:var(--muted);font:500 9px 'DM Mono',monospace;letter-spacing:.15em}.auth-description{margin:0 0 22px;color:#665a4c;font:15px/1.7 'Noto Serif SC',serif}.auth-link-button{width:100%}
 @media(max-width:560px){.shell-main{padding:27px 18px 22px}.shell .topbar{padding-left:18px;padding-right:18px}.topbar-note{font-size:8px}.gallery-grid{gap:9px}.section-title{font-size:31px}.event-title{font-size:19px}.reader-title{font-size:25px}}
 
 /* WuyuLe paper theme: a quiet kraft surface shared by both existing app shells. */
@@ -136,7 +135,6 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .auth-card{width:min(430px,100%);padding:41px 32px 34px;border:1.5px solid var(--ink);border-radius:25px;background:var(--paper);box-shadow:none;text-align:center}
 .auth-brand-lockup{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:28px}
 .auth-brand{margin:0;font:600 30px/1.1 'Noto Serif SC',serif;letter-spacing:.03em}
-.auth-brand-lockup span{color:var(--muted);font:500 11px/1 'DM Mono',monospace;letter-spacing:.16em}
 .auth-subtitle{margin:0 0 24px;color:var(--ink);font:500 11px 'DM Mono',monospace;letter-spacing:.14em}
 .auth-form{gap:15px;text-align:left}
 .auth-form label{color:var(--ink);font-size:10px}
@@ -146,7 +144,6 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .auth-message{border-radius:12px;text-align:left;background:var(--paper-deep)}
 .auth-links{justify-content:center;margin-top:21px;gap:18px}
 .auth-links a{color:var(--ink)}
-.auth-screen,.auth-shell{background:var(--paper)}
 
 /* Add irregular stains and soft fold lines without turning the detail into a scroll. */
 .parchment-sheet{
@@ -218,6 +215,8 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .cutout-status{font:500 10px/1.5 'DM Mono',monospace;color:var(--ink)}
 .cutout-status.processing{color:var(--muted)}
 .cutout-status.fallback{color:#7b4f2d}
+.story-image-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.story-image-preview img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border:1px solid var(--line);border-radius:9px;filter:saturate(.8)}
 .form-error{margin:0;padding:8px 10px;border-radius:9px;background:#f1d0b2;color:#7b3f25;font-size:12px}
 .primary-button:disabled{cursor:wait;opacity:.6}
 
@@ -401,3 +400,46 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 @media(max-width:560px){
   .reader-screen.parchment-screen .parchment-sheet{height:min(700px,calc(100svh - 74px))}
 }
+
+/* Bottom navigation: the center action floats into a shallow curved notch. */
+.bottom-nav{
+  align-items:center;
+  height:64px;
+  padding:3px 10px 4px;
+  border:0;
+  background:transparent;
+  isolation:isolate;
+}
+.bottom-nav::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  border:1px solid var(--line);
+  border-radius:36px;
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  box-shadow:0 7px 22px #56331f1c;
+  backdrop-filter:blur(10px);
+  /* Remove a smooth half-circle from the capsule's top edge for the +. */
+  -webkit-mask:radial-gradient(40px 34px at 50% 0,transparent 0 33px,#000 34px);
+  mask:radial-gradient(40px 34px at 50% 0,transparent 0 33px,#000 34px);
+}
+.nav-item{
+  align-self:center;
+  padding:3px 6px;
+  transform:translateY(-10px);
+}
+.add-button,.shell .nav-plus{
+  position:relative;
+  z-index:2;
+  width:54px;
+  height:54px;
+  margin:0;
+  transform:translateY(-17px);
+}
+.bottom-nav-inner{
+  align-items:center;
+  padding:3px 9px 4px;
+}
+.shell .bottom-nav{height:64px;padding:3px 10px 4px}
+.shell .bottom-nav .nav-item{transform:translateY(-10px)}

@@ -1,2 +1,5 @@
-import { MeView } from '@/components/mvp-pages';
-export default function MePage() { return <MeView />; }
+import { redirect } from "next/navigation";
+
+export default function MePage() {
+  redirect("/?view=me");
+}
