@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node prisma/with-env.mjs generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:seed": "prisma db seed"
+    "postinstall": "node prisma/with-env.mjs generate",
+    "db:generate": "node prisma/with-env.mjs generate",
+    "db:push": "node prisma/with-env.mjs db push",
+    "db:seed": "node prisma/with-env.mjs db seed"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",

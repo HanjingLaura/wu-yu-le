@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { createRawToken, hashToken } from "@/lib/tokens";
 import { sendTransactionalEmail } from "@/lib/mail";
+import { getAppUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     await prisma.emailVerificationToken.create({
       data: { userId: user.id, tokenHash: hashToken(rawToken), expires: new Date(Date.now() + 1000 * 60 * 60 * 24) },
     });
-    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const base = getAppUrl();
     const verificationUrl = `${base}/api/auth/verify?token=${rawToken}`;
     const mail = await sendTransactionalEmail({
       to: email,

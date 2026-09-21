@@ -1,14 +1,15 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Auth.js / NextAuth adapter tables. SQLite is the local development fallback;
-// switch provider + DATABASE_URL to Postgres for a hosted deployment.
+// Canonical provider is PostgreSQL (Vercel Marketplace Postgres / Neon via DATABASE_URL).
+// Local sqlite: DATABASE_URL="file:./dev.db" npm run db:push  (prisma/with-env.mjs swaps provider).
 model User {
   id            String    @id @default(cuid())
   name          String?

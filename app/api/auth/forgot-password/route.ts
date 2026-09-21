@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createRawToken, hashToken } from "@/lib/tokens";
 import { sendTransactionalEmail } from "@/lib/mail";
+import { getAppUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   await prisma.passwordResetToken.create({
     data: { userId: user.id, tokenHash: hashToken(rawToken), expires: new Date(Date.now() + 1000 * 60 * 30) },
   });
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getAppUrl();
   const resetUrl = `${base}/reset-password?token=${rawToken}`;
   const mail = await sendTransactionalEmail({ to: email, subject: "Reset your WuyuLe password", text: `Reset your password here: ${resetUrl}` });
   return NextResponse.json({ ok: true, ...(process.env.NODE_ENV !== "production" ? { resetUrl, mailPreview: mail.preview } : {}) });
