@@ -9,7 +9,8 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  // NextAuth issues its own redirects; include basePath so /login stays under /wuyule.
+  // NextAuth redirects with an origin-absolute path. `/login` would 404 on the
+  // host; `/wuyule/login` matches Next `basePath` and NEXTAUTH_URL-with-or-without-path.
   pages: { signIn: `${APP_BASE_PATH}/login` },
   providers: [
     CredentialsProvider({
@@ -38,18 +39,25 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.username = (user as { username?: string | null }).username;
+        token.name = user.name;
+        token.email = user.email;
+      }
+      if (trigger === "update" && session) {
+        if (typeof session.name === "string") token.name = session.name;
+        if ("username" in session) token.username = session.username as string | null;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        (session.user as typeof session.user & { username?: string | null }).username =
-          (token.username as string | undefined) ?? null;
+        session.user.name = (token.name as string | undefined) ?? session.user.name;
+        session.user.email = (token.email as string | undefined) ?? session.user.email;
+        session.user.username = (token.username as string | undefined) ?? null;
       }
       return session;
     },

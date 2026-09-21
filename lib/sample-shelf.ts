@@ -1,7 +1,9 @@
 import { withBasePath } from "@/lib/base-path";
 
 export type Story = {
-  id: number;
+  id: number | string;
+  dbId?: string;
+  owned?: boolean;
   date: string;
   day: string;
   title: string;
@@ -16,7 +18,7 @@ export type Story = {
 
 export type ShelfObject = {
   id: string;
-  storyId?: number;
+  storyId?: number | string;
   date: string;
   title: string;
   objectImage: string;

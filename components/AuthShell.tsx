@@ -1,6 +1,15 @@
-import Link from "next/link";
 import "./auth-form.css";
 
-export function AuthShell({ title, subtitle, children, links = true }: { title: string; subtitle: string; children: React.ReactNode; links?: boolean }) {
-  return <main className="auth-page"><section className="auth-card"><div className="auth-brand-lockup"><h1 className="auth-brand">WuyuLe</h1></div><p className="auth-subtitle">{title}</p>{children}{links && <nav className="auth-links"><Link href="/login">Sign in</Link><Link href="/register">Create account</Link></nav>}</section></main>;
+export function AuthShell({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <main className="auth-page">
+      <section className="auth-card">
+        <div className="auth-brand-lockup">
+          <h1 className="auth-brand">WuyuLe</h1>
+        </div>
+        {title ? <p className="auth-subtitle">{title}</p> : null}
+        {children}
+      </section>
+    </main>
+  );
 }
