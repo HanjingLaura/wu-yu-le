@@ -434,9 +434,9 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   background:color-mix(in srgb,var(--white) 78%,var(--surface));
   box-shadow:0 8px 22px #56331f24;
   backdrop-filter:blur(12px);
-  /* Tight U-notch around the +; keep side icons close to the capsule midline. */
-  -webkit-mask:radial-gradient(32px 28px at 50% 2px,transparent 25px,#000 26.5px);
-  mask:radial-gradient(32px 28px at 50% 2px,transparent 25px,#000 26.5px);
+  /* Wide U-notch around the + so kraft paper shows as a thin ring. */
+  -webkit-mask:radial-gradient(38px 34px at 50% 0,transparent 31px,#000 32.5px);
+  mask:radial-gradient(38px 34px at 50% 0,transparent 31px,#000 32.5px);
 }
 .bottom-nav-inner{
   display:contents;
@@ -466,8 +466,8 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   position:relative;
   z-index:2;
   justify-self:center;
-  width:50px;
-  height:50px;
+  width:48px;
+  height:48px;
   margin:0;
   padding:0;
   border:0;
@@ -475,7 +475,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   background:var(--ink);
   color:var(--paper);
   box-shadow:0 6px 16px #35291e33;
-  transform:translateY(-18px);
+  transform:translateY(-20px);
 }
 .shelf-sentinel{height:1px;pointer-events:none}
 .toast{bottom:108px}
@@ -486,11 +486,11 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 @media(max-width:560px){
   .bottom-nav,.shell .bottom-nav{bottom:10px;width:calc(100% - 18px);height:54px}
   .nav-item,.shell .nav-item{height:54px}
-  .add-button,.shell .nav-plus{width:48px;height:48px;transform:translateY(-16px)}
+  .add-button,.shell .nav-plus{width:46px;height:46px;transform:translateY(-18px)}
   .bottom-nav::before,.shell .bottom-nav::before{
     border-radius:27px;
-    -webkit-mask:radial-gradient(30px 26px at 50% 2px,transparent 24px,#000 25.5px);
-    mask:radial-gradient(30px 26px at 50% 2px,transparent 24px,#000 25.5px);
+    -webkit-mask:radial-gradient(36px 32px at 50% 0,transparent 29px,#000 30.5px);
+    mask:radial-gradient(36px 32px at 50% 0,transparent 29px,#000 30.5px);
   }
   .app-shell,.shell{padding-bottom:114px}
 }
