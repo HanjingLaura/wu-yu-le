@@ -57,52 +57,50 @@ export default function EventDetail({
         <button className="icon-button" onClick={onBack} aria-label="返回"><ArrowLeft size={20} /></button>
         <span aria-hidden="true" />
       </header>
-      <article className="parchment-sheet">
-        <div className="reader-scroll">
-          {cutout ? (
-            <div className="object-display"><img src={cutout} alt="" /></div>
-          ) : null}
-          <div className="parchment-copy">
-            <p className="eyebrow">{story.day} · {story.date}</p>
-            <h1>{story.title}</h1>
-            {story.excerpt ? <p className="lead">{story.excerpt}</p> : null}
-            <div className="reader-copy">
-              {story.content.split("\n").map((line, index) => (line ? <p key={index}>{line}</p> : null))}
+      <article className="parchment-sheet" data-event-scroll="true">
+        {cutout ? (
+          <div className="object-display"><img src={cutout} alt="" /></div>
+        ) : null}
+        <div className="parchment-copy">
+          <p className="eyebrow">{story.day} · {story.date}</p>
+          <h1>{story.title}</h1>
+          {story.excerpt ? <p className="lead">{story.excerpt}</p> : null}
+          <div className="reader-copy">
+            {story.content.split("\n").map((line, index) => (line ? <p key={index}>{line}</p> : null))}
+          </div>
+          {story.storyImages.length > 0 && (
+            <div className="story-photo-grid" aria-label="趣事配图">
+              {story.storyImages.map((image, index) => (
+                <img key={`${image}-${index}`} src={image} alt="" />
+              ))}
             </div>
-            {story.storyImages.length > 0 && (
-              <div className="story-photo-grid" aria-label="趣事配图">
-                {story.storyImages.map((image, index) => (
-                  <img key={`${image}-${index}`} src={image} alt="" />
-                ))}
-              </div>
-            )}
-            <div className="event-social">
-              <div className="comment-row">
-                <button
-                  type="button"
-                  className={social.liked ? "is-liked" : ""}
-                  onClick={onToggleLike}
-                  aria-pressed={social.liked}
-                  aria-label={social.liked ? "取消喜欢" : "喜欢"}
-                >
-                  <Heart size={18} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" />
-                  {social.likes}
-                </button>
-                <span className="comment-count">
-                  <MessageCircle size={17} aria-hidden="true" />
-                  {social.comments.length}
-                </span>
-              </div>
-              <div className="comments">
-                {social.comments.map((comment) => (
-                  <p key={comment.id}><b>{comment.author}</b> {comment.text}</p>
-                ))}
-              </div>
-              <form className="comment-input" onSubmit={submitComment}>
-                <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写回应" aria-label="写回应" />
-                <button type="submit" aria-label="发送"><Send size={16} /></button>
-              </form>
+          )}
+          <div className="event-social">
+            <div className="comment-row">
+              <button
+                type="button"
+                className={social.liked ? "is-liked" : ""}
+                onClick={onToggleLike}
+                aria-pressed={social.liked}
+                aria-label={social.liked ? "取消喜欢" : "喜欢"}
+              >
+                <Heart size={18} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" />
+                {social.likes}
+              </button>
+              <span className="comment-count">
+                <MessageCircle size={17} aria-hidden="true" />
+                {social.comments.length}
+              </span>
             </div>
+            <div className="comments">
+              {social.comments.map((comment) => (
+                <p key={comment.id}><b>{comment.author}</b> {comment.text}</p>
+              ))}
+            </div>
+            <form className="comment-input" onSubmit={submitComment}>
+              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写回应" aria-label="写回应" />
+              <button type="submit" aria-label="发送"><Send size={16} /></button>
+            </form>
           </div>
         </div>
       </article>
