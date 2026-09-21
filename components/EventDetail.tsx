@@ -96,16 +96,16 @@ export default function EventDetail({
                 <MessageCircle size={17} aria-hidden="true" />
                 {social.comments.length}
               </span>
+              <form className="comment-input" onSubmit={submitComment}>
+                <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写评论" aria-label="写评论" />
+                <button type="submit" aria-label="发送评论"><Send size={16} /></button>
+              </form>
             </div>
             <div className="comments">
               {social.comments.map((comment) => (
                 <p key={comment.id}><b>{comment.author}</b> {comment.text}</p>
               ))}
             </div>
-            <form className="comment-input" onSubmit={submitComment}>
-              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写评论" aria-label="写评论" />
-              <button type="submit" aria-label="发送"><Send size={16} /></button>
-            </form>
           </div>
         </div>
       </article>
