@@ -472,10 +472,27 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 }
 .sheet-head{justify-content:flex-end;align-items:center;margin-bottom:8px}
 .view-heading-end{justify-content:flex-end}
+.add-sheet{position:relative}
+.add-sheet.is-picking{overflow:hidden}
 .add-sheet form{gap:14px}
 .add-sheet input,.add-sheet textarea{margin-top:0}
 .add-sheet .visibility{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .add-sheet .visibility button{padding:12px;text-align:center}
+.friend-pick-field{display:flex;flex-direction:column;gap:8px}
+.picker-row{display:flex;align-items:center;width:100%;gap:10px;min-height:48px;padding:11px 14px;border:1.5px solid var(--ink);border-radius:12px;background:color-mix(in srgb,var(--paper) 72%,white);color:var(--ink);text-align:left}
+.picker-row > span{flex:1;font-size:14px}
+.picker-row svg{flex:none;color:var(--ink)}
+.friend-chips{display:flex;flex-wrap:wrap;gap:6px}
+.friend-chip{border:1px solid var(--ink);border-radius:999px;padding:4px 10px;background:color-mix(in srgb,var(--paper) 72%,white);font-size:12px;line-height:1.3}
+.friend-picker{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;padding:16px 20px 24px;overflow-y:auto;background:var(--paper);border-radius:24px 24px 0 0}
+.friend-picker-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.picker-list{display:flex;flex-direction:column}
+.picker-friend-row{display:flex;align-items:center;width:100%;gap:11px;padding:14px 0;border:0;border-bottom:1px solid color-mix(in srgb,var(--ink) 25%,transparent);background:transparent;text-align:left;color:var(--ink)}
+.picker-friend-row div{display:flex;flex:1;flex-direction:column;gap:3px}
+.picker-friend-row strong{font-size:13px}
+.picker-friend-row small{font:10px 'DM Mono',monospace;color:var(--muted)}
+.picker-check{display:grid;place-items:center;width:22px;height:22px;flex:none;border:1.5px solid var(--ink);border-radius:50%;color:var(--paper)}
+.picker-check.is-selected{background:var(--ink)}
 .upload-box{justify-content:center;min-height:52px}
 .friends-toolbar{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 .friends-toolbar .add-friend{flex:none;padding:8px 2px;min-width:36px;min-height:36px}

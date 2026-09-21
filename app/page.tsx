@@ -31,6 +31,13 @@ import {
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
 
+const SAMPLE_FRIENDS = [
+  { name: "Mia Chen", handle: "@mia", status: "3 条共享记录", initials: "MC" },
+  { name: "Noah Lin", handle: "@noah", status: "今天在线", initials: "NL" },
+  { name: "June Wang", handle: "@june", status: "1 条共享记录", initials: "JW" },
+  { name: "Kai Zhou", handle: "@kai", status: "2 条共享记录", initials: "KZ" },
+];
+
 function Brand({ onBook }: { onBook: () => void }) {
   return <div className="brand-mark"><button className="book-launch" onClick={onBook} aria-label="打开年表"><BookOpen size={23} strokeWidth={1.8} aria-hidden="true" /></button></div>;
 }
@@ -163,11 +170,6 @@ function GalleryView({ stories, onOpen, commentStory, setCommentStory, notify }:
 
 function FriendsView({ notify }: { notify: (message: string) => void }) {
   const [query, setQuery] = useState("");
-  const people = [
-    { name: "Mia Chen", handle: "@mia", status: "3 条共享记录", initials: "MC" },
-    { name: "Noah Lin", handle: "@noah", status: "今天在线", initials: "NL" },
-    { name: "June Wang", handle: "@june", status: "1 条共享记录", initials: "JW" },
-  ];
   return (
     <section className="view friends-view" aria-label="朋友">
       <div className="friends-toolbar">
@@ -175,7 +177,7 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
         <div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索姓名" aria-label="搜索姓名" /></div>
       </div>
       <div className="friend-list">
-        {people.filter((p) => `${p.name} ${p.handle}`.toLowerCase().includes(query.toLowerCase())).map((person) => (
+        {SAMPLE_FRIENDS.filter((p) => `${p.name} ${p.handle}`.toLowerCase().includes(query.toLowerCase())).map((person) => (
           <div className="friend-row" key={person.handle}>
             <span className="person-avatar">{person.initials}</span>
             <div><strong>{person.name}</strong><small>{person.handle} · {person.status}</small></div>
@@ -236,12 +238,26 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
   const [date, setDate] = useState("2024-06-14");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [people, setPeople] = useState("");
+  const [people, setPeople] = useState<string[]>([]);
+  const [pickingFriends, setPickingFriends] = useState(false);
+  const [draftPeople, setDraftPeople] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
   const [storyImages, setStoryImages] = useState<string[]>([]);
   const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">("idle");
   const [error, setError] = useState("");
+
+  const openFriendPicker = () => {
+    setDraftPeople(people);
+    setPickingFriends(true);
+  };
+  const confirmFriendPicker = () => {
+    setPeople(draftPeople);
+    setPickingFriends(false);
+  };
+  const toggleDraftFriend = (name: string) => {
+    setDraftPeople((current) => current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name]);
+  };
 
   const processImage = async (file: File) => {
     setError("");
@@ -285,7 +301,7 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
     const id = Date.now();
     const normalizedTitle = title.trim();
     const normalizedContent = content.trim();
-    const normalizedPeople = people.split(/[、,，]/).map((name) => name.trim()).filter(Boolean);
+    const normalizedPeople = people;
     const formattedDate = formatShelfDate(date);
     const item: ShelfObject = {
       id: `item-${id}`,
@@ -316,7 +332,7 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <section className="add-sheet" onClick={(e) => e.stopPropagation()}>
+      <section className={`add-sheet${pickingFriends ? " is-picking" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <button className="icon-button" onClick={onClose} aria-label="关闭"><X size={20} /></button>
         </div>
@@ -324,7 +340,17 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
           <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required aria-label="日期" />
           <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="给它一个名字" required aria-label="短标题" />
           <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="写下当时发生了什么…" rows={4} required aria-label="趣事正文" />
-          <input value={people} onChange={(event) => setPeople(event.target.value)} placeholder="用逗号分开，可不填" aria-label="参与好友" />
+          <div className="friend-pick-field">
+            <button type="button" className="picker-row" onClick={openFriendPicker} aria-label={people.length ? `加入好友，已选 ${people.join("、")}` : "加入好友"}>
+              <span>加入好友</span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+            {people.length > 0 && (
+              <div className="friend-chips" aria-label="已选好友">
+                {people.map((name) => <span className="friend-chip" key={name}>{name}</span>)}
+              </div>
+            )}
+          </div>
           <span className="upload-box">
             <Camera size={19} />
             <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required aria-label="物品照片" />
@@ -353,6 +379,26 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
           </div>
           <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>上架 <Check size={17} /></button>
         </form>
+        {pickingFriends && (
+          <div className="friend-picker" role="dialog" aria-modal="true" aria-label="加入好友">
+            <div className="friend-picker-head">
+              <button type="button" className="icon-button" onClick={() => setPickingFriends(false)} aria-label="返回"><ArrowLeft size={20} /></button>
+              <button type="button" className="icon-button" onClick={confirmFriendPicker} aria-label="确认"><Check size={20} /></button>
+            </div>
+            <div className="picker-list">
+              {SAMPLE_FRIENDS.map((person) => {
+                const selected = draftPeople.includes(person.name);
+                return (
+                  <button type="button" className={`picker-friend-row${selected ? " is-selected" : ""}`} key={person.handle} onClick={() => toggleDraftFriend(person.name)} aria-pressed={selected}>
+                    <span className="person-avatar">{person.initials}</span>
+                    <div><strong>{person.name}</strong><small>{person.handle}</small></div>
+                    <span className={`picker-check${selected ? " is-selected" : ""}`} aria-hidden="true">{selected ? <Check size={13} /> : null}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );
