@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -48,31 +48,45 @@ function NavItem({ active, icon, label, onClick }: { active: boolean; icon: Reac
 
 export default function Home() {
   const router = useRouter();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [tab, setTab] = useState<Tab>("shelf");
   const [timeline, setTimeline] = useState(false);
   const [reader, setReader] = useState<{ story: Story; objectImage: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [socialById, setSocialById] = useState<Record<number, EventSocial>>({});
+  const [socialById, setSocialById] = useState<Record<string, EventSocial>>({});
   const [notice, setNotice] = useState("");
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>(sampleObjects);
 
-  const openTab = (next: Tab) => {
+  const openAdd = useCallback(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    setShowAdd(true);
+  }, [status, router]);
+
+  const openTab = useCallback((next: Tab) => {
     if ((next === "friends" || next === "me") && status === "unauthenticated") {
       router.push("/login");
       return;
     }
     setTab(next);
     setTimeline(false);
-  };
+  }, [status, router]);
 
   useEffect(() => {
     const view = new URLSearchParams(window.location.search).get("view");
     if (view === "timeline") setTimeline(true);
     if (view === "gallery") setTab("gallery");
-    if (view === "add") setShowAdd(true);
+    if (view === "add") {
+      if (status === "unauthenticated") {
+        router.replace("/login");
+        return;
+      }
+      if (status === "authenticated") setShowAdd(true);
+    }
     if (view === "friends" || view === "me") {
       if (status === "unauthenticated") {
         router.replace("/login");
@@ -81,32 +95,97 @@ export default function Home() {
       if (status === "authenticated") setTab(view);
     }
   }, [status, router]);
-  const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2600); };
-  const openEvent = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
-  const socialFor = (id: number) => socialById[id] ?? defaultEventSocial();
-  const toggleLike = (id: number) => {
-    setSocialById((current) => {
-      const now = current[id] ?? defaultEventSocial();
-      const liked = !now.liked;
-      return { ...current, [id]: { ...now, liked, likes: Math.max(0, now.likes + (liked ? 1 : -1)) } };
-    });
-  };
-  const addComment = (id: number, text: string) => {
-    setSocialById((current) => {
-      const now = current[id] ?? defaultEventSocial();
-      return { ...current, [id]: { ...now, comments: [...now.comments, { id: Date.now(), author: "Laura", text }] } };
-    });
-  };
 
-  const addStory = (item: ShelfObject, story: Story) => {
+  useEffect(() => {
+    let live = true;
+    fetch(apiPath("/api/stories"))
+      .then((response) => (response.ok ? response.json() : { records: [] }))
+      .then((data) => {
+        if (!live || !Array.isArray(data.records)) return;
+        const records = data.records as { story: Story; item: ShelfObject; comments: { id: string; author: string; text: string }[] }[];
+        setStories((current) => {
+          const incoming = records.map((record) => record.story).filter((story) => !current.some((entry) => entry.dbId === story.dbId || entry.id === story.id));
+          return incoming.length ? [...incoming, ...current] : current;
+        });
+        setShelfObjects((current) => {
+          const incoming = records
+            .filter((record) => record.item.objectImage)
+            .map((record) => record.item)
+            .filter((item) => !current.some((entry) => entry.id === item.id || entry.storyId === item.storyId));
+          return incoming.length ? [...incoming, ...current] : current;
+        });
+        setSocialById((current) => {
+          const next = { ...current };
+          for (const record of records) {
+            const key = String(record.story.dbId ?? record.story.id);
+            if (!next[key]) next[key] = { liked: false, likes: 0, comments: record.comments };
+          }
+          return next;
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [status]);
+
+  const notify = useCallback((message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 2600);
+  }, []);
+  const openEvent = useCallback((story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); }, []);
+  const socialFor = (id: number | string) => socialById[String(id)] ?? defaultEventSocial();
+  const toggleLike = useCallback((id: number | string) => {
+    const key = String(id);
+    setSocialById((current) => {
+      const now = current[key] ?? defaultEventSocial();
+      const liked = !now.liked;
+      return { ...current, [key]: { ...now, liked, likes: Math.max(0, now.likes + (liked ? 1 : -1)) } };
+    });
+  }, []);
+  const addComment = useCallback(async (story: Story, text: string) => {
+    const key = String(story.dbId ?? story.id);
+    const author = session?.user?.name || session?.user?.username || session?.user?.email || "我";
+    if (story.dbId || typeof story.id === "string") {
+      const response = await fetch(apiPath(`/api/stories/${story.dbId ?? story.id}/comments`), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/login");
+          return;
+        }
+        notify(data.error ?? "无法评论。");
+        return;
+      }
+      setSocialById((current) => {
+        const now = current[key] ?? defaultEventSocial();
+        return { ...current, [key]: { ...now, comments: [...now.comments, data.comment] } };
+      });
+      return;
+    }
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    setSocialById((current) => {
+      const now = current[key] ?? defaultEventSocial();
+      return { ...current, [key]: { ...now, comments: [...now.comments, { id: Date.now(), author, text }] } };
+    });
+  }, [notify, router, session?.user?.email, session?.user?.name, session?.user?.username, status]);
+
+  const addStory = useCallback((item: ShelfObject, story: Story) => {
     setShelfObjects((current) => [item, ...current]);
     setStories((current) => [story, ...current]);
-  };
-  const saveEvent = (item: ShelfObject, story: Story) => {
-    setStories((current) => current.map((entry) => entry.id === story.id ? story : entry));
-    setShelfObjects((current) => current.map((entry) => entry.storyId === story.id ? { ...entry, date: item.date, title: item.title, objectImage: item.objectImage, people: item.people, cutout: item.cutout } : entry));
+  }, []);
+  const saveEvent = useCallback((item: ShelfObject, story: Story) => {
+    setStories((current) => current.map((entry) => (entry.id === story.id || entry.dbId === story.dbId) ? story : entry));
+    setShelfObjects((current) => current.map((entry) => (entry.storyId === story.id || entry.storyId === story.dbId) ? { ...entry, id: item.id, date: item.date, title: item.title, objectImage: item.objectImage, people: item.people, cutout: item.cutout } : entry));
     setReader({ story, objectImage: item.objectImage });
-  };
+  }, []);
 
   if (reader) {
     const { story, objectImage } = reader;
@@ -117,8 +196,8 @@ export default function Home() {
           objectImage={objectImage}
           social={socialFor(story.id)}
           onBack={() => { setShowEdit(false); setReader(null); }}
-          onToggleLike={() => toggleLike(story.id)}
-          onAddComment={(text) => addComment(story.id, text)}
+          onToggleLike={() => toggleLike(story.dbId ?? story.id)}
+          onAddComment={(text) => void addComment(story, text)}
           onEdit={() => setShowEdit(true)}
         />
         {showEdit && (
@@ -145,12 +224,12 @@ export default function Home() {
         </header>
       )}
       <div className="content-area">
-        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openEvent} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={toggleLike} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openEvent} onAdd={openAdd} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={toggleLike} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
       </div>
       <nav className="bottom-nav" aria-label="主导航">
         <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => openTab("shelf")} />
         <NavItem active={tab === "gallery"} icon={<Images size={20} />} label="打开相册" onClick={() => openTab("gallery")} />
-        <button className="add-button" onClick={() => setShowAdd(true)} aria-label="新增物品"><Plus size={24} /></button>
+        <button className="add-button" onClick={openAdd} aria-label="新增物品"><Plus size={24} /></button>
         <NavItem active={tab === "friends"} icon={<Users size={20} />} label="打开朋友" onClick={() => openTab("friends")} />
         <NavItem active={tab === "me"} icon={<CircleUserRound size={20} />} label="打开个人资料" onClick={() => openTab("me")} />
       </nav>
@@ -166,7 +245,7 @@ function chunkRows(items: ShelfObject[]) {
   return rows;
 }
 
-function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
+const ShelfView = memo(function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
   const [extras, setExtras] = useState<{ items: ShelfObject[]; stories: Story[] }>({ items: [], stories: [] });
   const sentinelRef = useRef<HTMLDivElement>(null);
   const displayedItems = [...items, ...extras.items];
@@ -211,16 +290,16 @@ function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; st
       <div ref={sentinelRef} className="shelf-sentinel" aria-hidden="true" />
     </section>
   );
-}
+});
 
-function ShelfItem({ item, stories, onOpen }: { item: ShelfObject; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void }) { const story = item.storyId ? stories.find((entry) => entry.id === item.storyId) : { id: 0, date: item.date, day: "", title: item.title, excerpt: "", content: "", objectImage: item.objectImage, storyImages: [], tone: "", people: item.people, public: false }; return <button className="shelf-item" onClick={() => story && onOpen(story, item.objectImage)} aria-label="打开物品"><span className={`shelf-item-image ${item.cutout ? "is-cutout" : ""}`}><img src={item.objectImage} alt=""/></span></button>; }
+function ShelfItem({ item, stories, onOpen }: { item: ShelfObject; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void }) { const story = item.storyId ? stories.find((entry) => entry.id === item.storyId || entry.dbId === item.storyId) : { id: 0, date: item.date, day: "", title: item.title, excerpt: "", content: "", objectImage: item.objectImage, storyImages: [], tone: "", people: item.people, public: false }; return <button className="shelf-item" onClick={() => story && onOpen(story, item.objectImage)} aria-label="打开物品"><span className={`shelf-item-image ${item.cutout ? "is-cutout" : ""}`}><img src={item.objectImage} alt="" loading="lazy" decoding="async" width={160} height={160} /></span></button>; }
 
 function TimelineView({ stories, onOpen, onBack }: { stories: Story[]; onOpen: (story: Story) => void; onBack: () => void }) {
   const orderedStories = [...stories].sort((a, b) => b.date.localeCompare(a.date));
   return <section className="view timeline-view"><div className="view-heading"><div><p className="eyebrow">2024</p></div><button className="icon-button" onClick={onBack} aria-label="返回"><ArrowLeft size={18}/></button></div><div className="timeline">{orderedStories.map((story, index) => <div className="timeline-row" key={story.id}><div className="date-rail"><strong>{story.date.split(" / ").slice(1).join("/")}</strong><span>{story.day}</span>{index !== orderedStories.length - 1 && <i/>}</div><button className={`story-card ${story.tone}`} onClick={() => onOpen(story)}><div className="card-copy"><span className="card-kicker">{story.public ? "公开" : "私藏"}</span><h2>{story.title}</h2><p>{story.excerpt}</p></div>{story.storyImages[0] ? <img src={story.storyImages[0]} alt=""/> : <span aria-hidden="true"/>}</button></div>)}</div></section>;
 }
 
-function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; socialById: Record<number, EventSocial>; onToggleLike: (id: number) => void }) {
+function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; socialById: Record<string, EventSocial>; onToggleLike: (id: number | string) => void }) {
   const gallery = stories.filter((story) => story.public && story.storyImages.length > 0);
   const columns = [gallery.filter((_, index) => index % 2 === 0), gallery.filter((_, index) => index % 2 === 1)];
   return (
@@ -231,16 +310,16 @@ function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: S
             {items.map((story) => {
               const index = gallery.indexOf(story);
               const image = story.storyImages[0];
-              const social = socialById[story.id] ?? defaultEventSocial();
+              const social = socialById[String(story.dbId ?? story.id)] ?? defaultEventSocial();
               return (
                 <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}>
-                  <button className="image-button" onClick={() => onOpen(story)}><img src={image} alt={story.title} style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button>
+                  <button className="image-button" onClick={() => onOpen(story)}><img src={image} alt="" loading="lazy" decoding="async" style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button>
                   <div className="gallery-meta">
                     <p className="card-kicker">{story.date} · {story.people.join(" + ")}</p>
                     <h2>{story.title}</h2>
                     <p>{story.excerpt}</p>
                     <div className="comment-row">
-                      <button type="button" className={social.liked ? "is-liked" : ""} onClick={() => onToggleLike(story.id)} aria-pressed={social.liked} aria-label={social.liked ? "取消喜欢" : "喜欢"}>
+                      <button type="button" className={social.liked ? "is-liked" : ""} onClick={() => onToggleLike(story.dbId ?? story.id)} aria-pressed={social.liked} aria-label={social.liked ? "取消喜欢" : "喜欢"}>
                         <Heart size={15} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" /> {social.likes}
                       </button>
                       <button type="button" onClick={() => onOpen(story)} aria-label="打开评论">
@@ -310,13 +389,17 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
       setResults([]);
       return;
     }
+    let live = true;
     const handle = window.setTimeout(async () => {
       const response = await fetch(apiPath(`/api/friends/search?q=${encodeURIComponent(q)}`));
-      if (!response.ok) return;
+      if (!live || !response.ok) return;
       const data = await response.json();
-      setResults(Array.isArray(data.results) ? data.results : []);
+      if (live) setResults(Array.isArray(data.results) ? data.results : []);
     }, 220);
-    return () => window.clearTimeout(handle);
+    return () => {
+      live = false;
+      window.clearTimeout(handle);
+    };
   }, [query, status]);
 
   const sendRequest = async (payload: { userId?: string; query?: string }) => {
@@ -536,6 +619,19 @@ function parseInputDate(formatted: string) {
   return formatted.includes("-") ? formatted : "2024-06-14";
 }
 
+async function toPersistableImage(url: string, blob?: Blob | null) {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) return url;
+  const source = blob ?? (url.startsWith("blob:") ? await fetch(url).then((response) => response.blob()) : null);
+  if (!source) return url;
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(source);
+  });
+}
+
 function AddStory({
   onClose,
   onAdd,
@@ -563,25 +659,20 @@ function AddStory({
   const [storyImages, setStoryImages] = useState<string[]>(initial?.story.storyImages ?? []);
   const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">(initial ? "ready" : "idle");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [pickerFriends, setPickerFriends] = useState<PublicPerson[]>([]);
+  const { status } = useSession();
 
-  useEffect(() => {
-    let live = true;
+  const loadPickerFriends = () => {
     fetch(apiPath("/api/friends"))
       .then((response) => (response.ok ? response.json() : { friends: [] }))
-      .then((data) => {
-        if (live) setPickerFriends(Array.isArray(data.friends) ? data.friends : []);
-      })
-      .catch(() => {
-        if (live) setPickerFriends([]);
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
+      .then((data) => setPickerFriends(Array.isArray(data.friends) ? data.friends : []))
+      .catch(() => setPickerFriends([]));
+  };
 
   const openFriendPicker = () => {
     setDraftPeople(people);
+    if (!pickerFriends.length) loadPickerFriends();
     setPickingFriends(true);
   };
   const confirmFriendPicker = () => {
@@ -626,7 +717,7 @@ function AddStory({
     setStoryImages(Array.from(files).map((file) => URL.createObjectURL(file)));
   };
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (cutoutStatus === "processing") {
       setError("正在扣图，请稍等。");
@@ -636,22 +727,15 @@ function AddStory({
       setError("先添加一张照片。");
       return;
     }
-    const id = initial?.story.id ?? Date.now();
+    const id = initial?.story.dbId ?? initial?.story.id ?? Date.now();
     const normalizedTitle = title.trim();
     const normalizedContent = content.trim();
     const normalizedPeople = people;
     const formattedDate = formatShelfDate(date);
-    const item: ShelfObject = {
-      id: initial?.item?.id ?? `item-${id}`,
-      storyId: id,
-      date: formattedDate,
-      title: normalizedTitle,
-      objectImage: imageUrl,
-      people: normalizedPeople,
-      cutout: replacedObject ? cutoutStatus === "ready" : initial?.item?.cutout ?? cutoutStatus === "ready",
-    };
-    const story: Story = {
+    let story: Story = {
       id,
+      dbId: initial?.story.dbId,
+      owned: true,
       date: formattedDate,
       day: formatStoryDay(date),
       title: normalizedTitle,
@@ -663,6 +747,58 @@ function AddStory({
       people: normalizedPeople,
       public: visibility === "PUBLIC",
     };
+    let item: ShelfObject = {
+      id: initial?.item?.id ?? `item-${id}`,
+      storyId: id,
+      date: formattedDate,
+      title: normalizedTitle,
+      objectImage: imageUrl,
+      people: normalizedPeople,
+      cutout: replacedObject ? cutoutStatus === "ready" : initial?.item?.cutout ?? cutoutStatus === "ready",
+    };
+    if (status === "authenticated") {
+      try {
+        setSaving(true);
+        const objectImage = await toPersistableImage(imageUrl, imageBlob);
+        const persistedPhotos = await Promise.all(storyImages.map((photo) => toPersistableImage(photo)));
+        let friends = pickerFriends;
+        if (!friends.length) {
+          const list = await fetch(apiPath("/api/friends")).then((response) => (response.ok ? response.json() : { friends: [] }));
+          friends = Array.isArray(list.friends) ? list.friends : [];
+          setPickerFriends(friends);
+        }
+        const peopleIds = friends.filter((person) => people.includes(person.name)).map((person) => person.id);
+        const payload = {
+          title: normalizedTitle,
+          content: normalizedContent,
+          happenedAt: date,
+          privacy: visibility,
+          peopleIds,
+          objectImage,
+          storyImages: persistedPhotos,
+        };
+        const dbId = initial?.story.dbId;
+        const response = await fetch(apiPath(dbId ? `/api/stories/${dbId}` : "/api/stories"), {
+          method: dbId ? "PATCH" : "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.record?.story) {
+          story = data.record.story;
+          item = data.record.item;
+        } else if (!response.ok) {
+          setSaving(false);
+          setError(data.error ?? "无法写入。");
+          return;
+        }
+      } catch {
+        setSaving(false);
+        setError("无法写入。");
+        return;
+      }
+      setSaving(false);
+    }
     if (isEdit) {
       onSave?.(item, story);
       onClose();
@@ -725,7 +861,7 @@ function AddStory({
             <button type="button" className={visibility === "PRIVATE" ? "selected" : ""} onClick={() => setVisibility("PRIVATE")}>私藏</button>
             <button type="button" className={visibility === "PUBLIC" ? "selected" : ""} onClick={() => setVisibility("PUBLIC")}>公开</button>
           </div>
-          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>{isEdit ? "保存" : "上架"} <Check size={17} /></button>
+          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing" || saving}>{isEdit ? "保存" : "上架"} <Check size={17} /></button>
         </form>
         {pickingFriends && (
           <div className="friend-picker" role="dialog" aria-modal="true" aria-label="加入好友">

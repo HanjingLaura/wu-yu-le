@@ -9,7 +9,8 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  // NextAuth issues its own redirects; include basePath so /login stays under /wuyule.
+  // NextAuth redirects with an origin-absolute path. `/login` would 404 on the
+  // host; `/wuyule/login` matches Next `basePath` and NEXTAUTH_URL-with-or-without-path.
   pages: { signIn: `${APP_BASE_PATH}/login` },
   providers: [
     CredentialsProvider({

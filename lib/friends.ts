@@ -110,9 +110,33 @@ export async function searchPeople(query: string, meId: string) {
     take: 20,
   });
 
+  const ids = users.map((user) => user.id);
+  const rows = ids.length
+    ? await prisma.friendship.findMany({
+        where: {
+          OR: [
+            { requesterId: meId, addresseeId: { in: ids } },
+            { addresseeId: meId, requesterId: { in: ids } },
+          ],
+        },
+      })
+    : [];
+  const byOther = new Map(rows.map((row) => [row.requesterId === meId ? row.addresseeId : row.requesterId, row]));
+
   const results = [];
   for (const user of users) {
-    const relation = await relationBetween(meId, user.id);
+    const row = byOther.get(user.id);
+    const relation: FriendRelation = !row
+      ? "none"
+      : row.status === "ACCEPTED"
+        ? "friends"
+        : row.status === "BLOCKED"
+          ? "blocked"
+          : row.status === "PENDING"
+            ? row.addresseeId === meId
+              ? "incoming"
+              : "outgoing"
+            : "none";
     if (relation === "blocked") continue;
     results.push({ ...toPublicPerson(user), relation });
   }

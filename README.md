@@ -69,6 +69,19 @@ npm run dev
 
 执行 `npm run db:seed` 后可使用演示账号 `hello@wuyule.local` / `wuyule-demo` 登录本地环境。
 
+## 数据库与 API
+
+Schema 已包含 `User`、`Friendship`、`Story`、`StoryImage`、`StoryParticipant`、`Comment`。拉代码后对目标 `DATABASE_URL` 跑一次 `npm run db:push`（生产 Neon / 本地 `file:` sqlite）。这次没有新增 Prisma migration 文件。
+
+已接线的接口：
+
+- `/api/auth/*`：注册、验证、忘记/重置密码、Credentials 登录
+- `/api/friends`、`/api/friends/search`、`/api/friends/[id]`：好友搜索与请求
+- `/api/me`：资料
+- `/api/stories`、`/api/stories/[id]`、`/api/stories/[id]/comments`：趣事与评论
+
+喜欢仍是客户端状态（没有 Like 表）。扣物大图若超过约 1.2MB 不会写入数据库；生产持久图片需要 Blob/S3。
+
 ## 品牌
 
 中文名：**物语了**（谐音“无语了”）  

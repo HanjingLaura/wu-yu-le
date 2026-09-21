@@ -5,7 +5,7 @@ import { ArrowLeft, Heart, MessageCircle, Pencil, Send } from "lucide-react";
 import type { Story } from "@/lib/sample-shelf";
 
 export type EventComment = {
-  id: number;
+  id: number | string;
   author: string;
   text: string;
 };
@@ -16,13 +16,8 @@ export type EventSocial = {
   comments: EventComment[];
 };
 
-export const DEFAULT_EVENT_COMMENTS: EventComment[] = [
-  { id: 1, author: "Mia", text: "我也记得。" },
-  { id: 2, author: "Noah", text: "那晚很特别。" },
-];
-
 export function defaultEventSocial(): EventSocial {
-  return { liked: false, likes: 12, comments: DEFAULT_EVENT_COMMENTS };
+  return { liked: false, likes: 0, comments: [] };
 }
 
 export default function EventDetail({
@@ -57,11 +52,13 @@ export default function EventDetail({
     <main className="reader-screen parchment-screen" data-event-detail="true" data-story-id={String(story.id)}>
       <header className="reader-header">
         <button className="icon-button" onClick={onBack} aria-label="返回"><ArrowLeft size={20} /></button>
-        <button className="icon-button" onClick={onEdit} aria-label="编辑" data-event-edit="true"><Pencil size={18} /></button>
+        {story.owned !== false && (
+          <button className="icon-button" onClick={onEdit} aria-label="编辑" data-event-edit="true"><Pencil size={18} /></button>
+        )}
       </header>
       <article className="parchment-sheet" data-event-scroll="true">
         {cutout ? (
-          <div className="object-display"><img src={cutout} alt="" /></div>
+          <div className="object-display"><img src={cutout} alt="" decoding="async" /></div>
         ) : null}
         <div className="parchment-copy">
           <p className="eyebrow">{story.day} · {story.date} · {story.public ? "公开" : "私藏"}</p>
@@ -76,7 +73,7 @@ export default function EventDetail({
           {story.storyImages.length > 0 && (
             <div className="story-photo-grid" aria-label="趣事配图">
               {story.storyImages.map((image, index) => (
-                <img key={`${image}-${index}`} src={image} alt="" />
+                <img key={`${image}-${index}`} src={image} alt="" loading="lazy" decoding="async" />
               ))}
             </div>
           )}

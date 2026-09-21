@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { APP_BASE_PATH } from "../lib/base-path";
 import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient();
@@ -38,7 +39,11 @@ async function main() {
       passwordHash,
     },
   });
-  const story = await prisma.story.findFirst({ where: { authorId: alice.id, title: "一场刚刚好的雨" } });
+  const objectUrl = `${APP_BASE_PATH}/objects/blue-mug.png`;
+  const story = await prisma.story.findFirst({
+    where: { authorId: alice.id, title: "一场刚刚好的雨" },
+    include: { images: true },
+  });
   if (!story) {
     await prisma.story.create({
       data: {
@@ -48,8 +53,11 @@ async function main() {
         privacy: "PUBLIC",
         authorId: alice.id,
         participants: { create: { userId: alice.id, role: "OWNER" } },
+        images: { create: { url: objectUrl, alt: "object", sortOrder: 0 } },
       },
     });
+  } else if (story.images.length === 0) {
+    await prisma.storyImage.create({ data: { storyId: story.id, url: objectUrl, alt: "object", sortOrder: 0 } });
   }
   console.log("Seeded demo account: hello@wuyule.local / wuyule-demo");
 }
