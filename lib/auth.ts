@@ -3,12 +3,14 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { APP_BASE_PATH } from "@/lib/base-path";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  // NextAuth issues its own redirects; include basePath so /login stays under /wuyule.
+  pages: { signIn: `${APP_BASE_PATH}/login` },
   providers: [
     CredentialsProvider({
       name: "Email",

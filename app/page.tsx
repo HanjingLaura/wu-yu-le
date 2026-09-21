@@ -29,6 +29,7 @@ import {
   type Story,
 } from "@/lib/sample-shelf";
 import EventDetail, { defaultEventSocial, type EventSocial } from "@/components/EventDetail";
+import { withBasePath } from "@/lib/base-path";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
 
@@ -277,7 +278,7 @@ function MeView({ notify }: { notify: (message: string) => void }) {
       </div>
       <div className="settings-list">
         <button onClick={() => notify("设置功能即将开放")}><Settings size={18} /><span>设置</span><ChevronRight size={17} /></button>
-        <button onClick={() => signOut({ callbackUrl: "/login" })}><LogOut size={18} /><span>退出</span><ChevronRight size={17} /></button>
+        <button onClick={() => signOut({ callbackUrl: withBasePath("/login") })}><LogOut size={18} /><span>退出</span><ChevronRight size={17} /></button>
       </div>
     </section>
   );

@@ -1,3 +1,5 @@
+import { withBasePath } from "@/lib/base-path";
+
 export type Story = {
   id: number;
   date: string;
@@ -39,7 +41,7 @@ export const OBJECT_ASSETS = [
   "/objects/ceramic-bowl.svg",
   "/objects/olive-hat.svg",
   "/objects/glass-jar.svg",
-] as const;
+].map(withBasePath);
 
 const PHOTO_POOL = [
   "https://images.unsplash.com/photo-1514897575457-c4db467cf78e?auto=format&fit=crop&w=900&q=80",
