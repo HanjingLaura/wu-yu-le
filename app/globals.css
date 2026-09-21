@@ -439,7 +439,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   min-height:40px;
   padding:0;
   font:500 12px/1 "DM Mono",monospace;
-  color:var(--muted);
+  color:#6b4f3c;
   background:none;
 }
 .event-social .comment-row > button svg,
@@ -484,14 +484,18 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   min-width:0;
   flex:1;
   height:18px;
+  margin:0;
   padding:0;
-  color:var(--muted);
-  font:400 12px/18px "DM Sans",sans-serif;
+  border:0;
+  color:#6b4f3c;
+  font:400 13px/18px "Noto Sans SC","DM Sans",sans-serif;
   background:transparent;
+  appearance:none;
 }
 .event-social .comment-input input::placeholder{
-  color:var(--muted);
-  opacity:.72;
+  color:#6b4f3c;
+  -webkit-text-fill-color:#6b4f3c;
+  opacity:1;
 }
 .event-social .comment-input button{
   display:grid;
@@ -501,7 +505,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   min-height:0;
   padding:0;
   flex:none;
-  color:var(--muted);
+  color:#6b4f3c;
 }
 .event-social .comment-input button svg{
   display:block;
