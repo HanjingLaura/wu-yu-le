@@ -402,10 +402,11 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 }
 .reader-screen.parchment-screen .parchment-sheet{
   box-shadow:5px 8px 0 rgba(86,51,31,.14);
+  background-attachment:local;
 }
+.reader-screen.parchment-screen .parchment-sheet::before,
 .reader-screen.parchment-screen .parchment-sheet::after{
-  box-shadow:none;
-  background:none;
+  display:none;
 }
 .event-social{
   display:flex;
