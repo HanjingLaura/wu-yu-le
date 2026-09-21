@@ -352,8 +352,9 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
             )}
           </div>
           <span className="upload-box">
-            <Camera size={19} />
-            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required aria-label="物品照片" />
+            <Camera size={19} aria-hidden="true" />
+            <span className="upload-label">上传物品图片</span>
+            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required aria-label="上传物品图片" />
           </span>
           {imageUrl && (
             <div className="cutout-preview">
@@ -364,8 +365,9 @@ function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (ite
             </div>
           )}
           <span className="upload-box">
-            <Images size={19} />
-            <input type="file" accept="image/*" capture="environment" multiple onChange={(event) => chooseStoryImages(event.target.files)} aria-label="现场照片" />
+            <Images size={19} aria-hidden="true" />
+            <span className="upload-label">上传图片</span>
+            <input type="file" accept="image/*" capture="environment" multiple onChange={(event) => chooseStoryImages(event.target.files)} aria-label="上传图片" />
           </span>
           {storyImages.length > 0 && (
             <div className="story-image-preview" aria-label={`已选 ${storyImages.length} 张现场照片`}>

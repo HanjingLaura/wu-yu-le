@@ -493,7 +493,9 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .picker-friend-row small{font:10px 'DM Mono',monospace;color:var(--muted)}
 .picker-check{display:grid;place-items:center;width:22px;height:22px;flex:none;border:1.5px solid var(--ink);border-radius:50%;color:var(--paper)}
 .picker-check.is-selected{background:var(--ink)}
-.upload-box{justify-content:center;min-height:52px}
+.upload-box{justify-content:center;align-items:center;min-height:52px;gap:8px}
+.upload-box svg,.upload-box .upload-label{position:relative;z-index:1;pointer-events:none;flex:none}
+.upload-label{font-size:13px;line-height:1.2;color:var(--ink)}
 .friends-toolbar{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 .friends-toolbar .add-friend{flex:none;padding:8px 2px;min-width:36px;min-height:36px}
 .friends-toolbar .search-field{flex:1;min-width:0;margin:0;padding:10px 0 8px}
