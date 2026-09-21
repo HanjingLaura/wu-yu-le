@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signOut } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import {
   ArrowLeft,
   BookOpen,
@@ -29,16 +31,12 @@ import {
   type Story,
 } from "@/lib/sample-shelf";
 import EventDetail, { defaultEventSocial, type EventSocial } from "@/components/EventDetail";
-import { withBasePath } from "@/lib/base-path";
+import { apiPath, withBasePath } from "@/lib/base-path";
+import type { FriendRelation, PublicPerson } from "@/lib/people";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
-
-const SAMPLE_FRIENDS = [
-  { name: "Mia Chen", handle: "@mia", status: "3 条共享记录", initials: "MC" },
-  { name: "Noah Lin", handle: "@noah", status: "今天在线", initials: "NL" },
-  { name: "June Wang", handle: "@june", status: "1 条共享记录", initials: "JW" },
-  { name: "Kai Zhou", handle: "@kai", status: "2 条共享记录", initials: "KZ" },
-];
+type SearchPerson = PublicPerson & { relation: FriendRelation };
+type FriendRequest = { id: string; person: PublicPerson };
 
 function Brand({ onBook }: { onBook: () => void }) {
   return <div className="brand-mark"><button className="book-launch" onClick={onBook} aria-label="打开年表"><BookOpen size={23} strokeWidth={1.8} aria-hidden="true" /></button></div>;
@@ -49,6 +47,8 @@ function NavItem({ active, icon, label, onClick }: { active: boolean; icon: Reac
 }
 
 export default function Home() {
+  const router = useRouter();
+  const { status } = useSession();
   const [tab, setTab] = useState<Tab>("shelf");
   const [timeline, setTimeline] = useState(false);
   const [reader, setReader] = useState<{ story: Story; objectImage: string } | null>(null);
@@ -58,14 +58,29 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>(sampleObjects);
+
+  const openTab = (next: Tab) => {
+    if ((next === "friends" || next === "me") && status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    setTab(next);
+    setTimeline(false);
+  };
+
   useEffect(() => {
     const view = new URLSearchParams(window.location.search).get("view");
     if (view === "timeline") setTimeline(true);
     if (view === "gallery") setTab("gallery");
-    if (view === "friends") setTab("friends");
-    if (view === "me") setTab("me");
     if (view === "add") setShowAdd(true);
-  }, []);
+    if (view === "friends" || view === "me") {
+      if (status === "unauthenticated") {
+        router.replace("/login");
+        return;
+      }
+      if (status === "authenticated") setTab(view);
+    }
+  }, [status, router]);
   const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2600); };
   const openEvent = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
   const socialFor = (id: number) => socialById[id] ?? defaultEventSocial();
@@ -133,11 +148,11 @@ export default function Home() {
         {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openEvent} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={toggleLike} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
       </div>
       <nav className="bottom-nav" aria-label="主导航">
-        <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }} />
-        <NavItem active={tab === "gallery"} icon={<Images size={20} />} label="打开相册" onClick={() => { setTab("gallery"); setTimeline(false); }} />
+        <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => openTab("shelf")} />
+        <NavItem active={tab === "gallery"} icon={<Images size={20} />} label="打开相册" onClick={() => openTab("gallery")} />
         <button className="add-button" onClick={() => setShowAdd(true)} aria-label="新增物品"><Plus size={24} /></button>
-        <NavItem active={tab === "friends"} icon={<Users size={20} />} label="打开朋友" onClick={() => { setTab("friends"); setTimeline(false); }} />
-        <NavItem active={tab === "me"} icon={<CircleUserRound size={20} />} label="打开个人资料" onClick={() => { setTab("me"); setTimeline(false); }} />
+        <NavItem active={tab === "friends"} icon={<Users size={20} />} label="打开朋友" onClick={() => openTab("friends")} />
+        <NavItem active={tab === "me"} icon={<CircleUserRound size={20} />} label="打开个人资料" onClick={() => openTab("me")} />
       </nav>
       {showAdd && <AddStory onClose={() => setShowAdd(false)} onAdd={addStory} notify={notify} />}
       {notice && <div className="toast"><Check size={16} /> {notice}</div>}
@@ -243,43 +258,250 @@ function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: S
   );
 }
 
+function PersonRow({
+  person,
+  note,
+  children,
+}: {
+  person: PublicPerson;
+  note?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="friend-row">
+      <span className="person-avatar">{person.initials}</span>
+      <div>
+        <strong>{person.name}</strong>
+        <small>{note ? `${person.handle} · ${note}` : person.handle}</small>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function FriendsView({ notify }: { notify: (message: string) => void }) {
+  const { status } = useSession();
   const [query, setQuery] = useState("");
+  const [friends, setFriends] = useState<PublicPerson[]>([]);
+  const [incoming, setIncoming] = useState<FriendRequest[]>([]);
+  const [outgoing, setOutgoing] = useState<FriendRequest[]>([]);
+  const [results, setResults] = useState<SearchPerson[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const loadLists = async () => {
+    const response = await fetch(apiPath("/api/friends"));
+    if (response.status === 401) return;
+    if (!response.ok) return;
+    const data = await response.json();
+    setFriends(Array.isArray(data.friends) ? data.friends : []);
+    setIncoming(Array.isArray(data.incoming) ? data.incoming : []);
+    setOutgoing(Array.isArray(data.outgoing) ? data.outgoing : []);
+  };
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    void loadLists();
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      return;
+    }
+    const handle = window.setTimeout(async () => {
+      const response = await fetch(apiPath(`/api/friends/search?q=${encodeURIComponent(q)}`));
+      if (!response.ok) return;
+      const data = await response.json();
+      setResults(Array.isArray(data.results) ? data.results : []);
+    }, 220);
+    return () => window.clearTimeout(handle);
+  }, [query, status]);
+
+  const sendRequest = async (payload: { userId?: string; query?: string }) => {
+    setBusy(true);
+    const response = await fetch(apiPath("/api/friends"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) {
+      notify(data.error ?? "无法添加。");
+      return;
+    }
+    setQuery("");
+    setResults([]);
+    await loadLists();
+    notify(data.status === "ACCEPTED" ? "已接受" : "已发送");
+  };
+
+  const respond = async (id: string, action: "accept" | "decline") => {
+    const response = await fetch(apiPath(`/api/friends/${id}`), {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      notify(data.error ?? "无法完成。");
+      return;
+    }
+    await loadLists();
+  };
+
+  if (status === "unauthenticated") {
+    return (
+      <section className="view friends-view" aria-label="朋友">
+        <div className="auth-needed"><Link href="/login">登录</Link></div>
+      </section>
+    );
+  }
+
   return (
     <section className="view friends-view" aria-label="朋友">
       <div className="friends-toolbar">
-        <button className="add-friend" onClick={() => notify("邀请链接已复制")} aria-label="邀请"><UserPlus size={18} /></button>
-        <div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索姓名" aria-label="搜索姓名" /></div>
+        <button
+          className="add-friend"
+          onClick={() => void sendRequest({ query })}
+          disabled={busy || !query.trim()}
+          aria-label="添加好友"
+        >
+          <UserPlus size={18} />
+        </button>
+        <div className="search-field">
+          <Search size={17} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索姓名" aria-label="搜索姓名" />
+        </div>
       </div>
       <div className="friend-list">
-        {SAMPLE_FRIENDS.filter((p) => `${p.name} ${p.handle}`.toLowerCase().includes(query.toLowerCase())).map((person) => (
-          <div className="friend-row" key={person.handle}>
-            <span className="person-avatar">{person.initials}</span>
-            <div><strong>{person.name}</strong><small>{person.handle} · {person.status}</small></div>
-            <button className="quiet-button" onClick={() => notify(`已打开 ${person.name} 的记录`)}>查看</button>
-          </div>
-        ))}
+        {query.trim()
+          ? results.map((person) => (
+              <PersonRow key={person.id} person={person} note={person.relation === "outgoing" ? "待接受" : person.relation === "incoming" ? "待处理" : undefined}>
+                {person.relation === "none" && (
+                  <button className="quiet-button" disabled={busy} onClick={() => void sendRequest({ userId: person.id })} aria-label={`添加 ${person.name}`}>
+                    添加
+                  </button>
+                )}
+                {person.relation === "incoming" && (
+                  <div className="friend-row-actions">
+                    {incoming.filter((row) => row.person.id === person.id).map((row) => (
+                      <span key={row.id} className="friend-row-actions">
+                        <button className="quiet-button" onClick={() => void respond(row.id, "accept")}>接受</button>
+                        <button className="quiet-button" onClick={() => void respond(row.id, "decline")}>拒绝</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </PersonRow>
+            ))
+          : (
+            <>
+              {incoming.map((row) => (
+                <PersonRow key={row.id} person={row.person}>
+                  <div className="friend-row-actions">
+                    <button className="quiet-button" onClick={() => void respond(row.id, "accept")}>接受</button>
+                    <button className="quiet-button" onClick={() => void respond(row.id, "decline")}>拒绝</button>
+                  </div>
+                </PersonRow>
+              ))}
+              {outgoing.map((row) => (
+                <PersonRow key={row.id} person={row.person} note="待接受" />
+              ))}
+              {friends.map((person) => (
+                <PersonRow key={person.id} person={person} />
+              ))}
+            </>
+          )}
       </div>
     </section>
   );
 }
 
 function MeView({ notify }: { notify: (message: string) => void }) {
+  const { data: session, status, update } = useSession();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    let live = true;
+    fetch(apiPath("/api/me"))
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!live || !data) return;
+        setName(typeof data.rawName === "string" ? data.rawName : data.name ?? "");
+        setUsername(typeof data.username === "string" ? data.username : "");
+        setEmail(typeof data.email === "string" ? data.email : session?.user?.email ?? "");
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [status, session?.user?.email]);
+
+  if (status === "unauthenticated") {
+    return (
+      <section className="view me-view" aria-label="个人资料">
+        <div className="auth-needed"><Link href="/login">登录</Link></div>
+      </section>
+    );
+  }
+
+  const displayName = name.trim() || username || email || session?.user?.name || session?.user?.email || "";
+  const handleLine = [username ? `@${username}` : null, email].filter(Boolean).join(" · ");
+
+  const saveSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    const response = await fetch(apiPath("/api/me"), {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, username }),
+    });
+    const data = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) {
+      notify(data.error ?? "无法保存。");
+      return;
+    }
+    setName(typeof data.rawName === "string" ? data.rawName : data.name ?? name);
+    setUsername(typeof data.username === "string" ? data.username : username);
+    await update({ name: data.rawName ?? data.name ?? name, username: data.username ?? null });
+    setSettingsOpen(false);
+    notify("已保存");
+  };
+
   return (
     <section className="view me-view" aria-label="个人资料">
-      <div className="profile-card">
-        <div><h2>Laura Hanjing</h2><p>@laura · 2024</p></div>
-        <button className="quiet-button" onClick={() => notify("资料编辑功能即将开放")}>编辑</button>
+      <div className="me-identity">
+        <strong>{displayName}</strong>
+        {handleLine ? <small>{handleLine}</small> : null}
       </div>
-      <div className="stats">
-        <div><strong>03</strong><span>记录</span></div>
-        <div><strong>02</strong><span>公开</span></div>
-        <div><strong>04</strong><span>朋友</span></div>
-      </div>
-      <div className="settings-list">
-        <button onClick={() => notify("设置功能即将开放")}><Settings size={18} /><span>设置</span><ChevronRight size={17} /></button>
-        <button onClick={() => signOut({ callbackUrl: withBasePath("/login") })}><LogOut size={18} /><span>退出</span><ChevronRight size={17} /></button>
-      </div>
+      {settingsOpen ? (
+        <form className="settings-panel" onSubmit={saveSettings}>
+          <label>
+            姓名
+            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+          </label>
+          <label>
+            用户名
+            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+          </label>
+          <button className="primary-button" type="submit" disabled={busy}>保存</button>
+          <button className="quiet-button" type="button" onClick={() => setSettingsOpen(false)}>返回</button>
+        </form>
+      ) : (
+        <div className="settings-list">
+          <button type="button" onClick={() => setSettingsOpen(true)}><Settings size={18} /><span>设置</span><ChevronRight size={17} /></button>
+          <button type="button" onClick={() => signOut({ callbackUrl: withBasePath("/login") })}><LogOut size={18} /><span>退出登录</span><ChevronRight size={17} /></button>
+        </div>
+      )}
     </section>
   );
 }
@@ -314,11 +536,6 @@ function parseInputDate(formatted: string) {
   return formatted.includes("-") ? formatted : "2024-06-14";
 }
 
-function matchedFriendName(name: string) {
-  const hit = SAMPLE_FRIENDS.find((friend) => friend.name === name || friend.name.startsWith(`${name} `) || friend.name.split(" ")[0] === name);
-  return hit?.name ?? name;
-}
-
 function AddStory({
   onClose,
   onAdd,
@@ -337,7 +554,7 @@ function AddStory({
   const [date, setDate] = useState(initial ? parseInputDate(initial.story.date) : "2024-06-14");
   const [title, setTitle] = useState(initial?.story.title ?? "");
   const [content, setContent] = useState(initial?.story.content ?? "");
-  const [people, setPeople] = useState<string[]>(initial?.story.people.map(matchedFriendName) ?? []);
+  const [people, setPeople] = useState<string[]>(initial?.story.people ?? []);
   const [pickingFriends, setPickingFriends] = useState(false);
   const [draftPeople, setDraftPeople] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState(initial?.objectImage || initial?.story.objectImage || "");
@@ -346,6 +563,22 @@ function AddStory({
   const [storyImages, setStoryImages] = useState<string[]>(initial?.story.storyImages ?? []);
   const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">(initial ? "ready" : "idle");
   const [error, setError] = useState("");
+  const [pickerFriends, setPickerFriends] = useState<PublicPerson[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    fetch(apiPath("/api/friends"))
+      .then((response) => (response.ok ? response.json() : { friends: [] }))
+      .then((data) => {
+        if (live) setPickerFriends(Array.isArray(data.friends) ? data.friends : []);
+      })
+      .catch(() => {
+        if (live) setPickerFriends([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const openFriendPicker = () => {
     setDraftPeople(people);
@@ -501,10 +734,10 @@ function AddStory({
               <button type="button" className="icon-button" onClick={confirmFriendPicker} aria-label="确认"><Check size={20} /></button>
             </div>
             <div className="picker-list">
-              {SAMPLE_FRIENDS.map((person) => {
+              {pickerFriends.map((person) => {
                 const selected = draftPeople.includes(person.name);
                 return (
-                  <button type="button" className={`picker-friend-row${selected ? " is-selected" : ""}`} key={person.handle} onClick={() => toggleDraftFriend(person.name)} aria-pressed={selected}>
+                  <button type="button" className={`picker-friend-row${selected ? " is-selected" : ""}`} key={person.id} onClick={() => toggleDraftFriend(person.name)} aria-pressed={selected}>
                     <span className="person-avatar">{person.initials}</span>
                     <div><strong>{person.name}</strong><small>{person.handle}</small></div>
                     <span className={`picker-check${selected ? " is-selected" : ""}`} aria-hidden="true">{selected ? <Check size={13} /> : null}</span>

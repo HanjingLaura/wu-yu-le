@@ -135,14 +135,14 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .auth-card{width:min(430px,100%);padding:41px 32px 34px;border:1.5px solid var(--ink);border-radius:25px;background:var(--paper);box-shadow:none;text-align:center}
 .auth-brand-lockup{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:28px}
 .auth-brand{margin:0;font:600 30px/1.1 'Noto Serif SC',serif;letter-spacing:.03em}
-.auth-subtitle{margin:0 0 24px;color:var(--ink);font:500 11px 'DM Mono',monospace;letter-spacing:.14em}
+.auth-subtitle{margin:0 0 24px;color:var(--ink);font:500 15px 'DM Sans','Noto Sans SC',sans-serif;letter-spacing:.08em}
 .auth-form{gap:15px;text-align:left}
 .auth-form label{color:var(--ink);font-size:10px}
 .auth-form input{height:53px;margin-top:7px;border:1.5px solid var(--ink);border-radius:13px;background:transparent;padding:12px 15px;color:var(--ink)}
 .auth-form input:focus,.field input:focus,.field textarea:focus,.add-sheet input:focus,.add-sheet textarea:focus{box-shadow:0 0 0 3px #56331f22}
-.auth-submit{width:100%;height:54px;padding:0;font-size:11px}
+.auth-submit{width:100%;height:54px;padding:0;font:500 15px 'DM Sans','Noto Sans SC',sans-serif;letter-spacing:.08em}
 .auth-message{border-radius:12px;text-align:left;background:var(--paper-deep)}
-.auth-links{justify-content:center;margin-top:21px;gap:18px}
+.auth-links{justify-content:center;margin-top:21px;gap:22px;font:500 14px/1.4 'DM Sans','Noto Sans SC',sans-serif}
 .auth-links a{color:var(--ink)}
 
 /* Add irregular stains and soft fold lines without turning the detail into a scroll. */
@@ -618,6 +618,17 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .friends-toolbar .add-friend{flex:none;padding:8px 2px;min-width:36px;min-height:36px}
 .friends-toolbar .search-field{flex:1;min-width:0;margin:0;padding:10px 0 8px}
 .me-view .profile-card{margin-top:4px}
+.me-identity{padding:4px 0 18px;border-bottom:1px solid color-mix(in srgb,var(--ink) 25%,transparent)}
+.me-identity strong{display:block;font:600 18px/1.35 'Noto Serif SC',serif}
+.me-identity small{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+.auth-needed{padding:8px 0 12px}
+.auth-needed a{color:var(--ink);font-size:15px;text-decoration:none}
+.auth-needed a:hover{text-decoration:underline}
+.settings-panel{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+.settings-panel label{font:500 10px 'DM Mono',monospace;letter-spacing:.08em;color:var(--ink)}
+.settings-panel input{display:block;width:100%;height:48px;margin-top:7px;border:1.5px solid var(--ink);border-radius:13px;padding:12px 15px;background:transparent;color:var(--ink);outline:0}
+.settings-panel .quiet-button{align-self:center;padding:8px}
+.friend-row-actions{display:flex;align-items:center;gap:8px;flex:none}
 .app-shell-plain .content-area{padding-top:22px}
 @media(min-width:721px){
   .bottom-nav,.shell .bottom-nav{bottom:22px}

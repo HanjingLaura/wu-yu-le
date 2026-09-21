@@ -29,3 +29,13 @@ export async function sendTransactionalEmail({
   console.info(`[wuyule mail] ${to}\nSubject: ${subject}\n\n${text}`);
   return { delivered: false, preview: text.match(/https?:\/\/\S+/)?.[0] };
 }
+
+/** Never fail the account flow just because SMTP is missing; callers can return the link. */
+export async function sendOrReturnLink(payload: { to: string; subject: string; text: string }) {
+  try {
+    return await sendTransactionalEmail(payload);
+  } catch (error) {
+    console.error("mail failed", error);
+    return { delivered: false as const, preview: payload.text.match(/https?:\/\/\S+/)?.[0] };
+  }
+}

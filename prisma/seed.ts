@@ -7,11 +7,33 @@ async function main() {
   const passwordHash = await hashPassword("wuyule-demo");
   const alice = await prisma.user.upsert({
     where: { email: "hello@wuyule.local" },
-    update: { emailVerified: new Date(), passwordHash },
+    update: { emailVerified: new Date(), passwordHash, name: "Laura", username: "laura" },
     create: {
       email: "hello@wuyule.local",
       name: "Laura",
       username: "laura",
+      emailVerified: new Date(),
+      passwordHash,
+    },
+  });
+  await prisma.user.upsert({
+    where: { email: "mia@wuyule.local" },
+    update: { emailVerified: new Date(), passwordHash, name: "Mia Chen", username: "mia" },
+    create: {
+      email: "mia@wuyule.local",
+      name: "Mia Chen",
+      username: "mia",
+      emailVerified: new Date(),
+      passwordHash,
+    },
+  });
+  await prisma.user.upsert({
+    where: { email: "noah@wuyule.local" },
+    update: { emailVerified: new Date(), passwordHash, name: "Noah Lin", username: "noah" },
+    create: {
+      email: "noah@wuyule.local",
+      name: "Noah Lin",
+      username: "noah",
       emailVerified: new Date(),
       passwordHash,
     },
