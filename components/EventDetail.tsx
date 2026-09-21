@@ -58,10 +58,10 @@ export default function EventDetail({
         <span aria-hidden="true" />
       </header>
       <article className="parchment-sheet">
-        {cutout ? (
-          <div className="object-display"><img src={cutout} alt="" /></div>
-        ) : null}
         <div className="reader-scroll">
+          {cutout ? (
+            <div className="object-display"><img src={cutout} alt="" /></div>
+          ) : null}
           <div className="parchment-copy">
             <p className="eyebrow">{story.day} · {story.date}</p>
             <h1>{story.title}</h1>
@@ -85,11 +85,11 @@ export default function EventDetail({
                   aria-pressed={social.liked}
                   aria-label={social.liked ? "取消喜欢" : "喜欢"}
                 >
-                  <Heart size={16} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" />
+                  <Heart size={18} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" />
                   {social.likes}
                 </button>
                 <span className="comment-count">
-                  <MessageCircle size={15} aria-hidden="true" />
+                  <MessageCircle size={17} aria-hidden="true" />
                   {social.comments.length}
                 </span>
               </div>
@@ -97,11 +97,11 @@ export default function EventDetail({
                 {social.comments.map((comment) => (
                   <p key={comment.id}><b>{comment.author}</b> {comment.text}</p>
                 ))}
-                <form className="comment-input" onSubmit={submitComment}>
-                  <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写回应" aria-label="写回应" />
-                  <button type="submit" aria-label="发送"><Send size={14} /></button>
-                </form>
               </div>
+              <form className="comment-input" onSubmit={submitComment}>
+                <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写回应" aria-label="写回应" />
+                <button type="submit" aria-label="发送"><Send size={16} /></button>
+              </form>
             </div>
           </div>
         </div>
