@@ -389,6 +389,23 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
   border-radius:10px;
   filter:saturate(.72) sepia(.12);
 }
+.event-social{
+  margin-top:22px;
+  padding-top:16px;
+  border-top:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
+}
+.event-social .comment-row{margin-top:0;gap:18px}
+.event-social .comment-count{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  color:var(--muted);
+  font:500 10px "DM Mono",monospace;
+}
+.comment-row button.is-liked{color:var(--ink)}
+.event-social .comments{border-top:0;margin-top:10px;padding-top:0}
+.event-social .comment-input{margin-top:10px;border-bottom-color:color-mix(in srgb,var(--ink) 35%,transparent)}
+.event-social .comment-input input{color:var(--ink);font-size:13px}
 @media(max-width:560px){
   .reader-screen.parchment-screen{padding-left:12px;padding-right:12px}
   .reader-screen.parchment-screen .parchment-sheet{height:min(760px,calc(100svh - 74px))}

@@ -12,10 +12,10 @@ import {
   Images,
   Layers,
   LogOut,
+  Heart,
   MessageCircle,
   Plus,
   Search,
-  Send,
   Settings,
   UserPlus,
   Users,
@@ -28,6 +28,7 @@ import {
   type ShelfObject,
   type Story,
 } from "@/lib/sample-shelf";
+import EventDetail, { defaultEventSocial, type EventSocial } from "@/components/EventDetail";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
 
@@ -51,7 +52,7 @@ export default function Home() {
   const [timeline, setTimeline] = useState(false);
   const [reader, setReader] = useState<{ story: Story; objectImage: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [commentStory, setCommentStory] = useState<number | null>(null);
+  const [socialById, setSocialById] = useState<Record<number, EventSocial>>({});
   const [notice, setNotice] = useState("");
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>(sampleObjects);
@@ -64,11 +65,34 @@ export default function Home() {
     if (view === "add") setShowAdd(true);
   }, []);
   const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2600); };
-  const openReader = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
+  const openEvent = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
+  const socialFor = (id: number) => socialById[id] ?? defaultEventSocial();
+  const toggleLike = (id: number) => {
+    setSocialById((current) => {
+      const now = current[id] ?? defaultEventSocial();
+      const liked = !now.liked;
+      return { ...current, [id]: { ...now, liked, likes: Math.max(0, now.likes + (liked ? 1 : -1)) } };
+    });
+  };
+  const addComment = (id: number, text: string) => {
+    setSocialById((current) => {
+      const now = current[id] ?? defaultEventSocial();
+      return { ...current, [id]: { ...now, comments: [...now.comments, { id: Date.now(), author: "Laura", text }] } };
+    });
+  };
 
   if (reader) {
     const { story, objectImage } = reader;
-    return <main className="reader-screen parchment-screen"><header className="reader-header"><button className="icon-button" onClick={() => setReader(null)} aria-label="返回"><ArrowLeft size={20}/></button><span aria-hidden="true" /></header><article className="parchment-sheet"><div className="object-display"><img src={objectImage} alt=""/></div><div className="reader-scroll"><div className="parchment-copy"><p className="eyebrow">{story.day} · {story.date}</p><h1>{story.title}</h1><p className="lead">{story.excerpt}</p><div className="reader-copy">{story.content.split("\n").map((line, index) => line ? <p key={index}>{line}</p> : null)}</div><div className="story-photo-grid" aria-label="趣事配图">{story.storyImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${story.title} 现场照片 ${index + 1}`}/>)}</div></div></div></article></main>;
+    return (
+      <EventDetail
+        story={story}
+        objectImage={objectImage}
+        social={socialFor(story.id)}
+        onBack={() => setReader(null)}
+        onToggleLike={() => toggleLike(story.id)}
+        onAddComment={(text) => addComment(story.id, text)}
+      />
+    );
   }
 
   const addStory = (item: ShelfObject, story: Story) => {
@@ -87,7 +111,7 @@ export default function Home() {
         </header>
       )}
       <div className="content-area">
-        {timeline ? <TimelineView stories={stories} onOpen={openReader} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openReader} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openEvent} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={toggleLike} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
       </div>
       <nav className="bottom-nav" aria-label="主导航">
         <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }} />
@@ -162,10 +186,42 @@ function TimelineView({ stories, onOpen, onBack }: { stories: Story[]; onOpen: (
   return <section className="view timeline-view"><div className="view-heading"><div><p className="eyebrow">2024</p></div><button className="icon-button" onClick={onBack} aria-label="返回"><ArrowLeft size={18}/></button></div><div className="timeline">{orderedStories.map((story, index) => <div className="timeline-row" key={story.id}><div className="date-rail"><strong>{story.date.split(" / ").slice(1).join("/")}</strong><span>{story.day}</span>{index !== orderedStories.length - 1 && <i/>}</div><button className={`story-card ${story.tone}`} onClick={() => onOpen(story)}><div className="card-copy"><span className="card-kicker">{story.public ? "公开" : "私藏"}</span><h2>{story.title}</h2><p>{story.excerpt}</p></div>{story.storyImages[0] ? <img src={story.storyImages[0]} alt=""/> : <span aria-hidden="true"/>}</button></div>)}</div></section>;
 }
 
-function GalleryView({ stories, onOpen, commentStory, setCommentStory, notify }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; commentStory: number | null; setCommentStory: (id: number | null) => void; notify: (message: string) => void }) {
+function GalleryView({ stories, onOpen, socialById, onToggleLike }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; socialById: Record<number, EventSocial>; onToggleLike: (id: number) => void }) {
   const gallery = stories.filter((story) => story.public && story.storyImages.length > 0);
   const columns = [gallery.filter((_, index) => index % 2 === 0), gallery.filter((_, index) => index % 2 === 1)];
-  return <section className="view gallery-view" aria-label="相册"><div className="masonry">{columns.map((items, columnIndex) => <div className="masonry-column" key={columnIndex}>{items.map((story) => { const index = gallery.indexOf(story); const image = story.storyImages[0]; return <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}><button className="image-button" onClick={() => onOpen(story)}><img src={image} alt={story.title} style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button><div className="gallery-meta"><p className="card-kicker">{story.date} · {story.people.join(" + ")}</p><h2>{story.title}</h2><p>{story.excerpt}</p><div className="comment-row"><button onClick={() => notify("已标记")} aria-label="标记"><span aria-hidden="true">♡</span> 12</button><button onClick={() => setCommentStory(commentStory === story.id ? null : story.id)}><MessageCircle size={15}/> {commentStory === story.id ? "收起" : "3"}</button></div>{commentStory === story.id && <div className="comments"><p><b>Mia</b> 我也记得。</p><p><b>Noah</b> 那晚很特别。</p><div className="comment-input"><input placeholder="写回应"/><button aria-label="发送" onClick={() => notify("已发送")}><Send size={14}/></button></div></div>}</div></article>; })}</div>)}</div></section>;
+  return (
+    <section className="view gallery-view" aria-label="相册">
+      <div className="masonry">
+        {columns.map((items, columnIndex) => (
+          <div className="masonry-column" key={columnIndex}>
+            {items.map((story) => {
+              const index = gallery.indexOf(story);
+              const image = story.storyImages[0];
+              const social = socialById[story.id] ?? defaultEventSocial();
+              return (
+                <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}>
+                  <button className="image-button" onClick={() => onOpen(story)}><img src={image} alt={story.title} style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button>
+                  <div className="gallery-meta">
+                    <p className="card-kicker">{story.date} · {story.people.join(" + ")}</p>
+                    <h2>{story.title}</h2>
+                    <p>{story.excerpt}</p>
+                    <div className="comment-row">
+                      <button type="button" className={social.liked ? "is-liked" : ""} onClick={() => onToggleLike(story.id)} aria-pressed={social.liked} aria-label={social.liked ? "取消喜欢" : "喜欢"}>
+                        <Heart size={15} fill={social.liked ? "currentColor" : "none"} aria-hidden="true" /> {social.likes}
+                      </button>
+                      <button type="button" onClick={() => onOpen(story)} aria-label="打开回应">
+                        <MessageCircle size={15} aria-hidden="true" /> {social.comments.length}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function FriendsView({ notify }: { notify: (message: string) => void }) {
