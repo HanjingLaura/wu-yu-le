@@ -1,2 +1,5 @@
-import { FriendsView } from '@/components/mvp-pages';
-export default function FriendsPage() { return <FriendsView />; }
+import { redirect } from "next/navigation";
+
+export default function FriendsPage() {
+  redirect("/?view=friends");
+}

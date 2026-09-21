@@ -1,31 +1,407 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, CircleUserRound, Feather, Heart, Image as ImageIcon, LogOut, Mail, MessageCircle, MoreHorizontal, Plus, Search, Send, Settings, Sparkles, UserPlus, Users, X } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Camera,
+  Check,
+  ChevronRight,
+  CircleUserRound,
+  Images,
+  Layers,
+  LogOut,
+  MessageCircle,
+  Plus,
+  Search,
+  Send,
+  Settings,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
+import {
+  initialStories,
+  makePlaceholderBatch,
+  sampleObjects,
+  type ShelfObject,
+  type Story,
+} from "@/lib/sample-shelf";
 
-type Tab = "book" | "gallery" | "friends" | "me";
-type Story = { id: number; date: string; day: string; title: string; excerpt: string; content: string; image: string; tone: string; people: string[]; public: boolean };
-const stories: Story[] = [
-  { id: 1, date: "2024 / 06 / 14", day: "FRI", title: "雨停在便利店门口", excerpt: "本来只是买一瓶水，最后和一只猫聊了十分钟。", content: "雨在便利店的玻璃门上写字。\n\n我们都没有急着走，店里的白灯把每个人的影子留在地面。橘猫从纸箱里探出头，像在确认今天是不是值得继续。\n\n后来雨停了，我们把伞借给了没有伞的人。", image: "https://images.unsplash.com/photo-1514897575457-c4db467cf78e?auto=format&fit=crop&w=900&q=80", tone: "ochre", people: ["你", "Mia"], public: true },
-  { id: 2, date: "2024 / 05 / 28", day: "TUE", title: "错过末班车之后", excerpt: "城市把我们留在了同一个站台，刚刚好。", content: "末班车开走之后，站台突然变得很安静。\n\n我们交换了耳机里正在听的歌，也交换了一个不太成熟的计划：走回去，顺便看看凌晨的城市。", image: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=900&q=80", tone: "clay", people: ["你", "Noah", "June"], public: true },
-  { id: 3, date: "2024 / 05 / 03", day: "FRI", title: "周五的面包店", excerpt: "烤箱响了一声，整个下午有了形状。", content: "我们在周五下午排队买面包。\n\n有人把最后一只可颂让给了身后的小朋友，老板多送了一块曲奇。好事情有时候就是这样，安静地挨在一起。", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80", tone: "sand", people: ["你", "Kai"], public: false },
+type Tab = "shelf" | "gallery" | "friends" | "me";
+
+const SAMPLE_FRIENDS = [
+  { name: "Mia Chen", handle: "@mia", status: "3 条共享记录", initials: "MC" },
+  { name: "Noah Lin", handle: "@noah", status: "今天在线", initials: "NL" },
+  { name: "June Wang", handle: "@june", status: "1 条共享记录", initials: "JW" },
+  { name: "Kai Zhou", handle: "@kai", status: "2 条共享记录", initials: "KZ" },
 ];
-const gallery = stories.filter((story) => story.public);
 
-function Brand() { return <div className="brand-mark"><span className="brand-icon">语</span><span><b>物语了</b><small>WUYULE</small></span></div>; }
-function NavItem({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label: string; onClick: () => void }) { return <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>{icon}<span>{label}</span></button>; }
-
-export default function Home() {
-  const [tab, setTab] = useState<Tab>("book"); const [reader, setReader] = useState<Story | null>(null); const [page, setPage] = useState(0); const [showAdd, setShowAdd] = useState(false); const [commentStory, setCommentStory] = useState<number | null>(null); const [notice, setNotice] = useState("");
-  const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2600); }; const openReader = (story: Story) => { setReader(story); setPage(0); };
-  const contentPages = useMemo(() => reader ? [reader.content.split("\n\n")[0], reader.content.split("\n\n").slice(1).join("\n\n")] : [], [reader]);
-  if (reader) return <main className="reader-screen"><header className="reader-header"><button className="icon-button" onClick={() => setReader(null)} aria-label="Back"><ArrowLeft size={20}/></button><span>READING · {reader.date}</span><button className="icon-button" onClick={() => notify("已收藏到你的书签")} aria-label="Bookmark"><Heart size={19}/></button></header><div className="reader-progress"><span style={{ width: `${(page + 1) * 50}%` }}/></div><article className="page-sheet" key={`${reader.id}-${page}`}><p className="eyebrow">{reader.day} · {reader.date}</p>{page === 0 ? <><h1>{reader.title}</h1><p className="lead">{reader.excerpt}</p><img src={reader.image} alt="" className="reader-image"/></> : <div className="reader-copy">{contentPages[1].split("\n").map((line, index) => line ? <p key={index}>{line}</p> : null)}</div>}<div className="page-number">0{page + 1} / 02</div></article><div className="reader-controls"><button disabled={page === 0} onClick={() => setPage(0)}><ChevronLeft size={18}/> PREV</button><span>SWIPE TO TURN</span><button disabled={page === 1} onClick={() => setPage(1)}>NEXT <ChevronRight size={18}/></button></div></main>;
-  return <main className="app-shell"><header className="topbar"><Brand/><div className="top-actions"><button className="round-action" aria-label="Search" onClick={() => notify("搜索功能即将开放")}><Search size={18}/></button><button className="avatar" onClick={() => setTab("me")} aria-label="Profile">L</button></div></header><div className="content-area">{tab === "book" && <BookView onOpen={openReader}/>} {tab === "gallery" && <GalleryView onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify}/>} {tab === "friends" && <FriendsView notify={notify}/>} {tab === "me" && <MeView notify={notify}/>}</div><nav className="bottom-nav"><NavItem active={tab === "book"} icon={<BookOpen size={20}/>} label="BOOK" onClick={() => setTab("book")}/><NavItem active={tab === "gallery"} icon={<ImageIcon size={20}/>} label="GALLERY" onClick={() => setTab("gallery")}/><button className="add-button" onClick={() => setShowAdd(true)} aria-label="Add story"><Plus size={26}/></button><NavItem active={tab === "friends"} icon={<Users size={20}/>} label="FRIENDS" onClick={() => setTab("friends")}/><NavItem active={tab === "me"} icon={<CircleUserRound size={20}/>} label="ME" onClick={() => setTab("me")}/></nav>{showAdd && <AddStory onClose={() => setShowAdd(false)} notify={notify}/>} {notice && <div className="toast"><Check size={16}/> {notice}</div>}</main>;
+function Brand({ onBook }: { onBook: () => void }) {
+  return <div className="brand-mark"><button className="book-launch" onClick={onBook} aria-label="打开年表"><BookOpen size={23} strokeWidth={1.8} aria-hidden="true" /></button></div>;
 }
 
-function BookView({ onOpen }: { onOpen: (story: Story) => void }) { return <section className="view"><div className="view-heading"><div><p className="eyebrow">YOUR ARCHIVE · 2024</p><h1>Book</h1></div><button className="text-button">FILTER <MoreHorizontal size={17}/></button></div><p className="intro">把那些差点无语的日子，写成以后会笑的故事。</p><div className="timeline">{stories.map((story, index) => <div className="timeline-row" key={story.id}><div className="date-rail"><strong>{story.date.split(" / ").slice(1).join("/")}</strong><span>{story.day}</span>{index !== stories.length - 1 && <i/>}</div><button className={`story-card ${story.tone}`} onClick={() => onOpen(story)}><div className="card-copy"><span className="card-kicker">EVENT {String(story.id).padStart(2, "0")} · {story.public ? "PUBLIC" : "PRIVATE"}</span><h2>{story.title}</h2><p>{story.excerpt}</p><span className="read-link">OPEN STORY <ChevronRight size={15}/></span></div><img src={story.image} alt=""/></button></div>)}</div></section>; }
-function GalleryView({ onOpen, commentStory, setCommentStory, notify }: { onOpen: (story: Story) => void; commentStory: number | null; setCommentStory: (id: number | null) => void; notify: (message: string) => void }) { return <section className="view"><div className="view-heading"><div><p className="eyebrow">FROM YOUR CIRCLE</p><h1>Gallery</h1></div><button className="text-button" onClick={() => notify("已显示全部 Public 故事")}>PUBLIC <Sparkles size={15}/></button></div><div className="masonry">{gallery.map((story, index) => <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}><button className="image-button" onClick={() => onOpen(story)}><img src={story.image} alt={story.title}/></button><div className="gallery-meta"><p className="card-kicker">{story.date} · {story.people.join(" + ")}</p><h2>{story.title}</h2><p>{story.excerpt}</p><div className="comment-row"><button onClick={() => notify("已收藏这则故事")}><Heart size={15}/> 12</button><button onClick={() => setCommentStory(commentStory === story.id ? null : story.id)}><MessageCircle size={15}/> {commentStory === story.id ? "Hide" : "3"}</button></div>{commentStory === story.id && <div className="comments"><p><b>Mia</b> 这也太像我们了。</p><p><b>Noah</b> 留在站台的那晚很特别。</p><div className="comment-input"><input placeholder="写一句回应…"/><button aria-label="Send" onClick={() => notify("评论已加入（演示）")}><Send size={14}/></button></div></div>}</div></article>)}</div></section>; }
-function FriendsView({ notify }: { notify: (message: string) => void }) { const [query, setQuery] = useState(""); const people = [{ name: "Mia Chen", handle: "@mia", status: "3 shared stories", initials: "MC" }, { name: "Noah Lin", handle: "@noah", status: "Last seen today", initials: "NL" }, { name: "June Wang", handle: "@june", status: "1 shared story", initials: "JW" }]; return <section className="view"><div className="view-heading"><div><p className="eyebrow">YOUR PEOPLE</p><h1>Friends</h1></div><button className="add-friend" onClick={() => notify("邀请链接已复制")}><UserPlus size={17}/> ADD</button></div><div className="search-field"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search email or username"/></div><div className="friend-list">{people.filter(p => `${p.name} ${p.handle}`.toLowerCase().includes(query.toLowerCase())).map(person => <div className="friend-row" key={person.handle}><span className="person-avatar">{person.initials}</span><div><strong>{person.name}</strong><small>{person.handle} · {person.status}</small></div><button className="quiet-button" onClick={() => notify(`已打开 ${person.name} 的共享故事`)}>VIEW</button></div>)}</div><div className="invite-card"><Feather size={19}/><div><b>Share the little things</b><p>邀请朋友一起记录，事件会出现在双方的 Book。</p></div><button onClick={() => notify("邀请链接已复制")}>INVITE <ChevronRight size={15}/></button></div></section>; }
-function MeView({ notify }: { notify: (message: string) => void }) { return <section className="view me-view"><div className="view-heading"><div><p className="eyebrow">YOUR CORNER</p><h1>Me</h1></div><button className="icon-button" onClick={() => notify("设置功能即将开放")}><Settings size={19}/></button></div><div className="profile-card"><span className="profile-avatar">L</span><div><h2>Laura Hanjing</h2><p>@laura · since 2024</p></div><button className="quiet-button" onClick={() => notify("资料编辑功能即将开放")}>EDIT</button></div><div className="stats"><div><strong>03</strong><span>STORIES</span></div><div><strong>02</strong><span>PUBLIC</span></div><div><strong>04</strong><span>FRIENDS</span></div></div><div className="settings-list"><button onClick={() => notify("邮箱已验证")}><Mail size={18}/><span>Email verification<small>laura@example.com · verified</small></span><Check size={17}/></button><button onClick={() => signOut({ callbackUrl: "/login" })}><LogOut size={18}/><span>Sign out<small>See you soon</small></span><ChevronRight size={17}/></button></div></section>; }
-function AddStory({ onClose, notify }: { onClose: () => void; notify: (message: string) => void }) { const [visibility, setVisibility] = useState("PRIVATE"); return <div className="modal-backdrop" onClick={onClose}><section className="add-sheet" onClick={e => e.stopPropagation()}><div className="sheet-head"><div><p className="eyebrow">NEW MEMORY</p><h2>Add a story</h2></div><button className="icon-button" onClick={onClose}><X size={20}/></button></div><form onSubmit={e => { e.preventDefault(); onClose(); notify("故事已保存到 Book"); }}><label>TIME<input type="date" defaultValue="2024-06-14" required/></label><label>EVENT<input placeholder="Give it a title" required/></label><label>CONTENT<textarea rows={5} placeholder="What happened?" required/></label><label>PHOTOS<span className="upload-box"><ImageIcon size={19}/> Add photos <small>JPG, PNG · optional</small><input type="file" accept="image/*" multiple/></span></label><div className="visibility"><span>VISIBILITY</span><div><button type="button" className={visibility === "PRIVATE" ? "selected" : ""} onClick={() => setVisibility("PRIVATE")}>PRIVATE<small>Participants only</small></button><button type="button" className={visibility === "PUBLIC" ? "selected" : ""} onClick={() => setVisibility("PUBLIC")}>PUBLIC<small>Show in Gallery</small></button></div></div><button className="primary-button" type="submit">SAVE STORY <Check size={17}/></button></form></section></div>; }
+function NavItem({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label: string; onClick: () => void }) {
+  return <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick} aria-label={label}>{icon}</button>;
+}
+
+export default function Home() {
+  const [tab, setTab] = useState<Tab>("shelf");
+  const [timeline, setTimeline] = useState(false);
+  const [reader, setReader] = useState<{ story: Story; objectImage: string } | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [commentStory, setCommentStory] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const [stories, setStories] = useState<Story[]>(initialStories);
+  const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>(sampleObjects);
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (view === "timeline") setTimeline(true);
+    if (view === "gallery") setTab("gallery");
+    if (view === "friends") setTab("friends");
+    if (view === "me") setTab("me");
+    if (view === "add") setShowAdd(true);
+  }, []);
+  const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2600); };
+  const openReader = (story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); };
+
+  if (reader) {
+    const { story, objectImage } = reader;
+    return <main className="reader-screen parchment-screen"><header className="reader-header"><button className="icon-button" onClick={() => setReader(null)} aria-label="返回"><ArrowLeft size={20}/></button><span aria-hidden="true" /></header><article className="parchment-sheet"><div className="object-display"><img src={objectImage} alt=""/></div><div className="reader-scroll"><div className="parchment-copy"><p className="eyebrow">{story.day} · {story.date}</p><h1>{story.title}</h1><p className="lead">{story.excerpt}</p><div className="reader-copy">{story.content.split("\n").map((line, index) => line ? <p key={index}>{line}</p> : null)}</div><div className="story-photo-grid" aria-label="趣事配图">{story.storyImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${story.title} 现场照片 ${index + 1}`}/>)}</div></div></div></article></main>;
+  }
+
+  const addStory = (item: ShelfObject, story: Story) => {
+    setShelfObjects((current) => [item, ...current]);
+    setStories((current) => [story, ...current]);
+  };
+  const showShelfHeader = tab === "shelf" && !timeline && !showAdd;
+  return (
+    <main className={`app-shell${showShelfHeader ? "" : " app-shell-plain"}`}>
+      {showShelfHeader && (
+        <header className="topbar">
+          <Brand onBook={() => { setTimeline(true); setTab("shelf"); }} />
+          <div className="top-actions">
+            <button className="round-action" aria-label="搜索" onClick={() => notify("搜索功能即将开放")}><Search size={18} /></button>
+          </div>
+        </header>
+      )}
+      <div className="content-area">
+        {timeline ? <TimelineView stories={stories} onOpen={openReader} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openReader} onAdd={() => setShowAdd(true)} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openReader} commentStory={commentStory} setCommentStory={setCommentStory} notify={notify} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+      </div>
+      <nav className="bottom-nav" aria-label="主导航">
+        <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => { setTab("shelf"); setTimeline(false); }} />
+        <NavItem active={tab === "gallery"} icon={<Images size={20} />} label="打开相册" onClick={() => { setTab("gallery"); setTimeline(false); }} />
+        <button className="add-button" onClick={() => setShowAdd(true)} aria-label="新增物品"><Plus size={24} /></button>
+        <NavItem active={tab === "friends"} icon={<Users size={20} />} label="打开朋友" onClick={() => { setTab("friends"); setTimeline(false); }} />
+        <NavItem active={tab === "me"} icon={<CircleUserRound size={20} />} label="打开个人资料" onClick={() => { setTab("me"); setTimeline(false); }} />
+      </nav>
+      {showAdd && <AddStory onClose={() => setShowAdd(false)} onAdd={addStory} notify={notify} />}
+      {notice && <div className="toast"><Check size={16} /> {notice}</div>}
+    </main>
+  );
+}
+
+function chunkRows(items: ShelfObject[]) {
+  const rows: ShelfObject[][] = [];
+  for (let index = 0; index < items.length; index += 4) rows.push(items.slice(index, index + 4));
+  return rows;
+}
+
+function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
+  const [extras, setExtras] = useState<{ items: ShelfObject[]; stories: Story[] }>({ items: [], stories: [] });
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const displayedItems = [...items, ...extras.items];
+  const displayedStories = [...stories, ...extras.stories];
+  const rows = chunkRows(displayedItems);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    let locked = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting || locked) return;
+      locked = true;
+      setExtras((current) => {
+        if (current.items.length >= 160) return current;
+        const next = makePlaceholderBatch(items.length + current.items.length);
+        return { items: [...current.items, ...next.items], stories: [...current.stories, ...next.stories] };
+      });
+      window.setTimeout(() => { locked = false; }, 480);
+    }, { root: null, rootMargin: "360px 0px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [items.length]);
+
+  return (
+    <section className="view shelf-view" aria-label="物品架">
+      <div className="shelf-rack">
+        {rows.map((row, index) => (
+          <div className={`shelf-row ${index === 0 ? "shelf-row-top" : "shelf-row-bottom"}`} key={row.map((item) => item.id).join("-")}>
+            {row.map((item) => <ShelfItem key={item.id} item={item} stories={displayedStories} onOpen={onOpen} />)}
+            {row.length < 4 && Array.from({ length: 4 - row.length }, (_, empty) => (
+              <button className="shelf-empty" key={`empty-${index}-${empty}`} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>
+            ))}
+          </div>
+        ))}
+        {displayedItems.length === 0 && (
+          <div className="shelf-row shelf-row-bottom">
+            {Array.from({ length: 4 }, (_, index) => <button className="shelf-empty" key={index} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>)}
+          </div>
+        )}
+      </div>
+      <div ref={sentinelRef} className="shelf-sentinel" aria-hidden="true" />
+    </section>
+  );
+}
+
+function ShelfItem({ item, stories, onOpen }: { item: ShelfObject; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void }) { const story = item.storyId ? stories.find((entry) => entry.id === item.storyId) : { id: 0, date: item.date, day: "", title: item.title, excerpt: "", content: "", objectImage: item.objectImage, storyImages: [], tone: "", people: item.people, public: false }; return <button className="shelf-item" onClick={() => story && onOpen(story, item.objectImage)} aria-label="打开物品"><span className={`shelf-item-image ${item.cutout ? "is-cutout" : ""}`}><img src={item.objectImage} alt=""/></span></button>; }
+
+function TimelineView({ stories, onOpen, onBack }: { stories: Story[]; onOpen: (story: Story) => void; onBack: () => void }) {
+  const orderedStories = [...stories].sort((a, b) => b.date.localeCompare(a.date));
+  return <section className="view timeline-view"><div className="view-heading"><div><p className="eyebrow">2024</p></div><button className="icon-button" onClick={onBack} aria-label="返回"><ArrowLeft size={18}/></button></div><div className="timeline">{orderedStories.map((story, index) => <div className="timeline-row" key={story.id}><div className="date-rail"><strong>{story.date.split(" / ").slice(1).join("/")}</strong><span>{story.day}</span>{index !== orderedStories.length - 1 && <i/>}</div><button className={`story-card ${story.tone}`} onClick={() => onOpen(story)}><div className="card-copy"><span className="card-kicker">{story.public ? "公开" : "私藏"}</span><h2>{story.title}</h2><p>{story.excerpt}</p></div>{story.storyImages[0] ? <img src={story.storyImages[0]} alt=""/> : <span aria-hidden="true"/>}</button></div>)}</div></section>;
+}
+
+function GalleryView({ stories, onOpen, commentStory, setCommentStory, notify }: { stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; commentStory: number | null; setCommentStory: (id: number | null) => void; notify: (message: string) => void }) {
+  const gallery = stories.filter((story) => story.public && story.storyImages.length > 0);
+  const columns = [gallery.filter((_, index) => index % 2 === 0), gallery.filter((_, index) => index % 2 === 1)];
+  return <section className="view gallery-view" aria-label="相册"><div className="masonry">{columns.map((items, columnIndex) => <div className="masonry-column" key={columnIndex}>{items.map((story) => { const index = gallery.indexOf(story); const image = story.storyImages[0]; return <article className={`gallery-card ${index % 2 ? "offset" : ""}`} key={story.id}><button className="image-button" onClick={() => onOpen(story)}><img src={image} alt={story.title} style={{ aspectRatio: index % 2 ? "3 / 4" : "4 / 5", objectFit: "cover" }}/></button><div className="gallery-meta"><p className="card-kicker">{story.date} · {story.people.join(" + ")}</p><h2>{story.title}</h2><p>{story.excerpt}</p><div className="comment-row"><button onClick={() => notify("已标记")} aria-label="标记"><span aria-hidden="true">♡</span> 12</button><button onClick={() => setCommentStory(commentStory === story.id ? null : story.id)}><MessageCircle size={15}/> {commentStory === story.id ? "收起" : "3"}</button></div>{commentStory === story.id && <div className="comments"><p><b>Mia</b> 我也记得。</p><p><b>Noah</b> 那晚很特别。</p><div className="comment-input"><input placeholder="写回应"/><button aria-label="发送" onClick={() => notify("已发送")}><Send size={14}/></button></div></div>}</div></article>; })}</div>)}</div></section>;
+}
+
+function FriendsView({ notify }: { notify: (message: string) => void }) {
+  const [query, setQuery] = useState("");
+  return (
+    <section className="view friends-view" aria-label="朋友">
+      <div className="friends-toolbar">
+        <button className="add-friend" onClick={() => notify("邀请链接已复制")} aria-label="邀请"><UserPlus size={18} /></button>
+        <div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索姓名" aria-label="搜索姓名" /></div>
+      </div>
+      <div className="friend-list">
+        {SAMPLE_FRIENDS.filter((p) => `${p.name} ${p.handle}`.toLowerCase().includes(query.toLowerCase())).map((person) => (
+          <div className="friend-row" key={person.handle}>
+            <span className="person-avatar">{person.initials}</span>
+            <div><strong>{person.name}</strong><small>{person.handle} · {person.status}</small></div>
+            <button className="quiet-button" onClick={() => notify(`已打开 ${person.name} 的记录`)}>查看</button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MeView({ notify }: { notify: (message: string) => void }) {
+  return (
+    <section className="view me-view" aria-label="个人资料">
+      <div className="profile-card">
+        <div><h2>Laura Hanjing</h2><p>@laura · 2024</p></div>
+        <button className="quiet-button" onClick={() => notify("资料编辑功能即将开放")}>编辑</button>
+      </div>
+      <div className="stats">
+        <div><strong>03</strong><span>记录</span></div>
+        <div><strong>02</strong><span>公开</span></div>
+        <div><strong>04</strong><span>朋友</span></div>
+      </div>
+      <div className="settings-list">
+        <button onClick={() => notify("设置功能即将开放")}><Settings size={18} /><span>设置</span><ChevronRight size={17} /></button>
+        <button onClick={() => signOut({ callbackUrl: "/login" })}><LogOut size={18} /><span>退出</span><ChevronRight size={17} /></button>
+      </div>
+    </section>
+  );
+}
+
+async function cropToPng(file: File): Promise<Blob> {
+  const image = await createImageBitmap(file);
+  const inset = Math.round(Math.min(image.width, image.height) * 0.04);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, image.width - inset * 2);
+  canvas.height = Math.max(1, image.height - inset * 2);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("canvas unavailable");
+  context.drawImage(image, inset, inset, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+  image.close();
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("png unavailable")), "image/png"));
+}
+
+function formatShelfDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${year} / ${month} / ${day}`;
+}
+
+function formatStoryDay(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+  return weekday.toUpperCase();
+}
+
+function AddStory({ onClose, onAdd, notify }: { onClose: () => void; onAdd: (item: ShelfObject, story: Story) => void; notify: (message: string) => void }) {
+  const [visibility, setVisibility] = useState("PRIVATE");
+  const [date, setDate] = useState("2024-06-14");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [people, setPeople] = useState<string[]>([]);
+  const [pickingFriends, setPickingFriends] = useState(false);
+  const [draftPeople, setDraftPeople] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageBlob, setImageBlob] = useState<Blob | null>(null);
+  const [storyImages, setStoryImages] = useState<string[]>([]);
+  const [cutoutStatus, setCutoutStatus] = useState<"idle" | "processing" | "ready" | "fallback">("idle");
+  const [error, setError] = useState("");
+
+  const openFriendPicker = () => {
+    setDraftPeople(people);
+    setPickingFriends(true);
+  };
+  const confirmFriendPicker = () => {
+    setPeople(draftPeople);
+    setPickingFriends(false);
+  };
+  const toggleDraftFriend = (name: string) => {
+    setDraftPeople((current) => current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name]);
+  };
+
+  const processImage = async (file: File) => {
+    setError("");
+    setCutoutStatus("processing");
+    const sourceUrl = URL.createObjectURL(file);
+    setImageUrl(sourceUrl);
+    try {
+      const { removeBackground } = await import("@imgly/background-removal");
+      const png = await removeBackground(file, {
+        model: "isnet_quint8",
+        output: { format: "image/png" },
+      });
+      setImageBlob(png);
+      setImageUrl(URL.createObjectURL(png));
+      setCutoutStatus("ready");
+    } catch {
+      try {
+        const cropped = await cropToPng(file);
+        setImageBlob(cropped);
+        setImageUrl(URL.createObjectURL(cropped));
+        setCutoutStatus("fallback");
+      } catch {
+        setImageBlob(null);
+        setCutoutStatus("idle");
+        setError("图片无法处理，请换一张照片。");
+      }
+    }
+  };
+
+  const chooseStoryImages = (files: FileList | null) => {
+    if (!files) return;
+    setStoryImages(Array.from(files).map((file) => URL.createObjectURL(file)));
+  };
+
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!imageBlob || cutoutStatus === "processing") {
+      setError(cutoutStatus === "processing" ? "正在扣图，请稍等。" : "先添加一张照片。");
+      return;
+    }
+    const id = Date.now();
+    const normalizedTitle = title.trim();
+    const normalizedContent = content.trim();
+    const normalizedPeople = people;
+    const formattedDate = formatShelfDate(date);
+    const item: ShelfObject = {
+      id: `item-${id}`,
+      storyId: id,
+      date: formattedDate,
+      title: normalizedTitle,
+      objectImage: imageUrl,
+      people: normalizedPeople,
+      cutout: cutoutStatus === "ready",
+    };
+    const story: Story = {
+      id,
+      date: formattedDate,
+      day: formatStoryDay(date),
+      title: normalizedTitle,
+      excerpt: normalizedContent.replace(/\s+/g, " ").slice(0, 96),
+      content: normalizedContent,
+      objectImage: imageUrl,
+      storyImages,
+      tone: "sand",
+      people: normalizedPeople,
+      public: visibility === "PUBLIC",
+    };
+    onAdd(item, story);
+    onClose();
+    notify(cutoutStatus === "ready" ? "透明物品已上架" : "已用居中裁切上架");
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <section className={`add-sheet${pickingFriends ? " is-picking" : ""}`} onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-head">
+          <button className="icon-button" onClick={onClose} aria-label="关闭"><X size={20} /></button>
+        </div>
+        <form onSubmit={submit}>
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required aria-label="日期" />
+          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="给它一个名字" required aria-label="短标题" />
+          <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="写下当时发生了什么…" rows={4} required aria-label="趣事正文" />
+          <div className="friend-pick-field">
+            <button type="button" className="picker-row" onClick={openFriendPicker} aria-label={people.length ? `加入好友，已选 ${people.join("、")}` : "加入好友"}>
+              <span>加入好友</span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+            {people.length > 0 && (
+              <div className="friend-chips" aria-label="已选好友">
+                {people.map((name) => <span className="friend-chip" key={name}>{name}</span>)}
+              </div>
+            )}
+          </div>
+          <span className="upload-box">
+            <Camera size={19} aria-hidden="true" />
+            <span className="upload-label">上传物品图片</span>
+            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required aria-label="上传物品图片" />
+          </span>
+          {imageUrl && (
+            <div className="cutout-preview">
+              <img src={imageUrl} alt="" />
+              <span className={`cutout-status ${cutoutStatus}`}>
+                {cutoutStatus === "processing" ? "正在扣图…" : cutoutStatus === "ready" ? "透明 PNG 已生成" : cutoutStatus === "fallback" ? "自动扣图未完成，已用居中裁切" : "等待处理"}
+              </span>
+            </div>
+          )}
+          <span className="upload-box">
+            <Images size={19} aria-hidden="true" />
+            <span className="upload-label">上传图片</span>
+            <input type="file" accept="image/*" capture="environment" multiple onChange={(event) => chooseStoryImages(event.target.files)} aria-label="上传图片" />
+          </span>
+          {storyImages.length > 0 && (
+            <div className="story-image-preview" aria-label={`已选 ${storyImages.length} 张现场照片`}>
+              {storyImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" />)}
+            </div>
+          )}
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <div className="visibility">
+            <button type="button" className={visibility === "PRIVATE" ? "selected" : ""} onClick={() => setVisibility("PRIVATE")}>私藏</button>
+            <button type="button" className={visibility === "PUBLIC" ? "selected" : ""} onClick={() => setVisibility("PUBLIC")}>公开</button>
+          </div>
+          <button className="primary-button" type="submit" disabled={cutoutStatus === "processing"}>上架 <Check size={17} /></button>
+        </form>
+        {pickingFriends && (
+          <div className="friend-picker" role="dialog" aria-modal="true" aria-label="加入好友">
+            <div className="friend-picker-head">
+              <button type="button" className="icon-button" onClick={() => setPickingFriends(false)} aria-label="返回"><ArrowLeft size={20} /></button>
+              <button type="button" className="icon-button" onClick={confirmFriendPicker} aria-label="确认"><Check size={20} /></button>
+            </div>
+            <div className="picker-list">
+              {SAMPLE_FRIENDS.map((person) => {
+                const selected = draftPeople.includes(person.name);
+                return (
+                  <button type="button" className={`picker-friend-row${selected ? " is-selected" : ""}`} key={person.handle} onClick={() => toggleDraftFriend(person.name)} aria-pressed={selected}>
+                    <span className="person-avatar">{person.initials}</span>
+                    <div><strong>{person.name}</strong><small>{person.handle}</small></div>
+                    <span className={`picker-check${selected ? " is-selected" : ""}`} aria-hidden="true">{selected ? <Check size={13} /> : null}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

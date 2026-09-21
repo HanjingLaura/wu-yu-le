@@ -1,2 +1,5 @@
-import { GalleryView } from '@/components/mvp-pages';
-export default function GalleryPage() { return <GalleryView />; }
+import { redirect } from "next/navigation";
+
+export default function GalleryPage() {
+  redirect("/?view=gallery");
+}
