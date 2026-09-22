@@ -56,8 +56,11 @@ export default function Home() {
   const [showEdit, setShowEdit] = useState(false);
   const [socialById, setSocialById] = useState<Record<string, EventSocial>>({});
   const [notice, setNotice] = useState("");
-  const [stories, setStories] = useState<Story[]>(initialStories);
-  const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>(sampleObjects);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>([]);
+  const [demoFill, setDemoFill] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [shelfQuery, setShelfQuery] = useState("");
 
   const openAdd = useCallback(() => {
     if (status === "unauthenticated") {
@@ -102,28 +105,31 @@ export default function Home() {
       .then((response) => (response.ok ? response.json() : { records: [] }))
       .then((data) => {
         if (!live || !Array.isArray(data.records)) return;
-        const records = data.records as { story: Story; item: ShelfObject; comments: { id: string; author: string; text: string }[] }[];
-        setStories((current) => {
-          const incoming = records.map((record) => record.story).filter((story) => !current.some((entry) => entry.dbId === story.dbId || entry.id === story.id));
-          return incoming.length ? [...incoming, ...current] : current;
-        });
-        setShelfObjects((current) => {
-          const incoming = records
-            .filter((record) => record.item.objectImage)
-            .map((record) => record.item)
-            .filter((item) => !current.some((entry) => entry.id === item.id || entry.storyId === item.storyId));
-          return incoming.length ? [...incoming, ...current] : current;
-        });
+        const records = data.records as { story: Story; item: ShelfObject; comments: { id: string; author: string; text: string }[]; likes?: number; liked?: boolean }[];
+        if (records.length) {
+          setDemoFill(false);
+          setStories(records.map((record) => record.story));
+          setShelfObjects(records.filter((record) => record.item.objectImage).map((record) => record.item));
+        } else {
+          setDemoFill(true);
+          setStories(initialStories);
+          setShelfObjects(sampleObjects);
+        }
         setSocialById((current) => {
           const next = { ...current };
           for (const record of records) {
             const key = String(record.story.dbId ?? record.story.id);
-            if (!next[key]) next[key] = { liked: false, likes: 0, comments: record.comments };
+            next[key] = { liked: Boolean(record.liked), likes: record.likes ?? 0, comments: record.comments };
           }
           return next;
         });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!live) return;
+        setDemoFill(true);
+        setStories(initialStories);
+        setShelfObjects(sampleObjects);
+      });
     return () => {
       live = false;
     };
@@ -135,17 +141,30 @@ export default function Home() {
   }, []);
   const openEvent = useCallback((story: Story, objectImage = story.objectImage) => { setReader({ story, objectImage }); }, []);
   const socialFor = (id: number | string) => socialById[String(id)] ?? defaultEventSocial();
-  const toggleLike = useCallback((id: number | string) => {
+  const toggleLike = useCallback(async (id: number | string) => {
     const key = String(id);
+    if (typeof id === "number") return;
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    const response = await fetch(apiPath(`/api/stories/${id}/likes`), { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+      notify(data.error ?? "无法喜欢。");
+      return;
+    }
     setSocialById((current) => {
       const now = current[key] ?? defaultEventSocial();
-      const liked = !now.liked;
-      return { ...current, [key]: { ...now, liked, likes: Math.max(0, now.likes + (liked ? 1 : -1)) } };
+      return { ...current, [key]: { ...now, liked: Boolean(data.liked), likes: Number(data.likes ?? now.likes) } };
     });
-  }, []);
+  }, [notify, router, status]);
   const addComment = useCallback(async (story: Story, text: string) => {
     const key = String(story.dbId ?? story.id);
-    const author = session?.user?.name || session?.user?.username || session?.user?.email || "我";
     if (story.dbId || typeof story.id === "string") {
       const response = await fetch(apiPath(`/api/stories/${story.dbId ?? story.id}/comments`), {
         method: "POST",
@@ -171,15 +190,15 @@ export default function Home() {
       router.push("/login");
       return;
     }
-    setSocialById((current) => {
-      const now = current[key] ?? defaultEventSocial();
-      return { ...current, [key]: { ...now, comments: [...now.comments, { id: Date.now(), author, text }] } };
-    });
-  }, [notify, router, session?.user?.email, session?.user?.name, session?.user?.username, status]);
+    notify("这条记录还没有写入。");
+  }, [notify, router, status]);
 
   const addStory = useCallback((item: ShelfObject, story: Story) => {
-    setShelfObjects((current) => [item, ...current]);
-    setStories((current) => [story, ...current]);
+    setDemoFill(false);
+    setShelfObjects((current) => [item, ...current.filter((entry) => typeof entry.storyId === "string")]);
+    setStories((current) => [story, ...current.filter((entry) => Boolean(entry.dbId) || typeof entry.id === "string")]);
+    const key = String(story.dbId ?? story.id);
+    setSocialById((current) => ({ ...current, [key]: current[key] ?? defaultEventSocial() }));
   }, []);
   const saveEvent = useCallback((item: ShelfObject, story: Story) => {
     setStories((current) => current.map((entry) => (entry.id === story.id || entry.dbId === story.dbId) ? story : entry));
@@ -194,9 +213,9 @@ export default function Home() {
         <EventDetail
           story={story}
           objectImage={objectImage}
-          social={socialFor(story.id)}
+          social={socialFor(story.dbId ?? story.id)}
           onBack={() => { setShowEdit(false); setReader(null); }}
-          onToggleLike={() => toggleLike(story.dbId ?? story.id)}
+          onToggleLike={() => void toggleLike(story.dbId ?? story.id)}
           onAddComment={(text) => void addComment(story, text)}
           onEdit={() => setShowEdit(true)}
         />
@@ -219,12 +238,33 @@ export default function Home() {
         <header className="topbar">
           <Brand onBook={() => { setTimeline(true); setTab("shelf"); }} />
           <div className="top-actions">
-            <button className="round-action" aria-label="搜索" onClick={() => notify("搜索功能即将开放")}><Search size={18} /></button>
+            {searchOpen ? (
+              <label className="shelf-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  value={shelfQuery}
+                  onChange={(event) => setShelfQuery(event.target.value)}
+                  placeholder="搜索标题或好友"
+                  aria-label="搜索标题或好友"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="关闭搜索"
+                  onClick={() => { setSearchOpen(false); setShelfQuery(""); }}
+                >
+                  <X size={16} />
+                </button>
+              </label>
+            ) : (
+              <button className="round-action" aria-label="搜索" onClick={() => setSearchOpen(true)}><Search size={18} /></button>
+            )}
           </div>
         </header>
       )}
       <div className="content-area">
-        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} onOpen={openEvent} onAdd={openAdd} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={toggleLike} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={stories} query={shelfQuery} allowPlaceholders={demoFill && !shelfQuery.trim()} onOpen={openEvent} onAdd={openAdd} /> : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={(id) => void toggleLike(id)} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
       </div>
       <nav className="bottom-nav" aria-label="主导航">
         <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => openTab("shelf")} />
@@ -245,10 +285,22 @@ function chunkRows(items: ShelfObject[]) {
   return rows;
 }
 
-const ShelfView = memo(function ShelfView({ items, stories, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
+function matchesShelfQuery(item: ShelfObject, stories: Story[], query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const story = item.storyId ? stories.find((entry) => entry.id === item.storyId || entry.dbId === item.storyId) : undefined;
+  const haystack = [item.title, ...item.people, story?.title, story?.content, ...(story?.people ?? [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
+const ShelfView = memo(function ShelfView({ items, stories, query = "", allowPlaceholders = false, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; query?: string; allowPlaceholders?: boolean; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
   const [extras, setExtras] = useState<{ items: ShelfObject[]; stories: Story[] }>({ items: [], stories: [] });
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const displayedItems = [...items, ...extras.items];
+  const filteredItems = items.filter((item) => matchesShelfQuery(item, stories, query));
+  const displayedItems = allowPlaceholders ? [...filteredItems, ...extras.items] : filteredItems;
   const displayedStories = [...stories, ...extras.stories];
   const rows = chunkRows(displayedItems);
 
@@ -257,7 +309,7 @@ const ShelfView = memo(function ShelfView({ items, stories, onOpen, onAdd }: { i
     if (!node) return;
     let locked = false;
     const observer = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting || locked) return;
+      if (!allowPlaceholders || !entries[0]?.isIntersecting || locked) return;
       locked = true;
       setExtras((current) => {
         if (current.items.length >= 160) return current;
@@ -268,10 +320,10 @@ const ShelfView = memo(function ShelfView({ items, stories, onOpen, onAdd }: { i
     }, { root: null, rootMargin: "360px 0px" });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [items.length]);
+  }, [allowPlaceholders, items.length]);
 
   return (
-    <section className="view shelf-view" aria-label="物品架">
+    <section className="view shelf-view" aria-label="物品架" data-demo-fill={allowPlaceholders ? "true" : undefined}>
       <div className="shelf-rack">
         {rows.map((row, index) => (
           <div className={`shelf-row ${index === 0 ? "shelf-row-top" : "shelf-row-bottom"}`} key={row.map((item) => item.id).join("-")}>
@@ -281,11 +333,13 @@ const ShelfView = memo(function ShelfView({ items, stories, onOpen, onAdd }: { i
             ))}
           </div>
         ))}
-        {displayedItems.length === 0 && (
+        {displayedItems.length === 0 && query.trim() ? (
+          <p className="shelf-empty-search">没有找到</p>
+        ) : displayedItems.length === 0 ? (
           <div className="shelf-row shelf-row-bottom">
             {Array.from({ length: 4 }, (_, index) => <button className="shelf-empty" key={index} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>)}
           </div>
-        )}
+        ) : null}
       </div>
       <div ref={sentinelRef} className="shelf-sentinel" aria-hidden="true" />
     </section>
@@ -633,6 +687,86 @@ async function toPersistableImage(url: string, blob?: Blob | null) {
   });
 }
 
+async function persistStoredImage(url: string, blob?: Blob | null) {
+  const persistable = await toPersistableImage(url, blob);
+  if (!persistable || persistable.startsWith("http://") || persistable.startsWith("https://") || persistable.startsWith("/")) {
+    return persistable;
+  }
+  const response = await fetch(apiPath("/api/uploads"), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ dataUrl: persistable }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.ok && typeof data.url === "string" && data.url) return data.url;
+  throw new Error(data.error ?? "无法保存图片。");
+}
+
+function ImagePickZone({
+  icon,
+  label,
+  cameraAriaLabel,
+  galleryAriaLabel,
+  galleryLabel = "从相册选择",
+  multiple = false,
+  onFiles,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  cameraAriaLabel: string;
+  galleryAriaLabel: string;
+  galleryLabel?: string;
+  multiple?: boolean;
+  onFiles: (files: FileList | null) => void;
+}) {
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  return (
+    <div className="upload-box">
+      <div className="upload-heading">
+        {icon}
+        <span className="upload-label">{label}</span>
+      </div>
+      <input
+        ref={cameraRef}
+        className="upload-input"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleChange}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+      <input
+        ref={galleryRef}
+        className="upload-input"
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        onChange={handleChange}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+      <div className="upload-actions">
+        <button type="button" className="upload-action" onClick={() => cameraRef.current?.click()} aria-label={cameraAriaLabel}>
+          <Camera size={15} aria-hidden="true" />
+          拍照
+        </button>
+        <button type="button" className="upload-action" onClick={() => galleryRef.current?.click()} aria-label={galleryAriaLabel}>
+          <Images size={15} aria-hidden="true" />
+          {galleryLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AddStory({
   onClose,
   onAdd,
@@ -760,8 +894,8 @@ function AddStory({
     if (status === "authenticated") {
       try {
         setSaving(true);
-        const objectImage = await toPersistableImage(imageUrl, imageBlob);
-        const persistedPhotos = await Promise.all(storyImages.map((photo) => toPersistableImage(photo)));
+        const objectImage = await persistStoredImage(imageUrl, imageBlob);
+        const persistedPhotos = await Promise.all(storyImages.map((photo) => persistStoredImage(photo)));
         let friends = pickerFriends;
         if (!friends.length) {
           const list = await fetch(apiPath("/api/friends")).then((response) => (response.ok ? response.json() : { friends: [] }));
@@ -793,9 +927,9 @@ function AddStory({
           setError(data.error ?? "无法写入。");
           return;
         }
-      } catch {
+      } catch (error) {
         setSaving(false);
-        setError("无法写入。");
+        setError(error instanceof Error && error.message ? error.message : "无法写入。");
         return;
       }
       setSaving(false);
@@ -832,11 +966,13 @@ function AddStory({
               </div>
             )}
           </div>
-          <span className="upload-box">
-            <Camera size={19} aria-hidden="true" />
-            <span className="upload-label">上传物品图片</span>
-            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required={!isEdit} aria-label="上传物品图片" />
-          </span>
+          <ImagePickZone
+            icon={<Camera size={19} aria-hidden="true" />}
+            label="上传物品图片"
+            cameraAriaLabel="拍照上传物品图片"
+            galleryAriaLabel="从相册选择物品图片"
+            onFiles={(files) => { const file = files?.[0]; if (file) void processImage(file); }}
+          />
           {imageUrl && (
             <div className="cutout-preview">
               <img src={imageUrl} alt="" />
@@ -847,11 +983,14 @@ function AddStory({
               )}
             </div>
           )}
-          <span className="upload-box">
-            <Images size={19} aria-hidden="true" />
-            <span className="upload-label">上传图片</span>
-            <input type="file" accept="image/*" capture="environment" multiple onChange={(event) => chooseStoryImages(event.target.files)} aria-label="上传图片" />
-          </span>
+          <ImagePickZone
+            icon={<Images size={19} aria-hidden="true" />}
+            label="上传图片"
+            cameraAriaLabel="拍照上传图片"
+            galleryAriaLabel="从相册选择图片"
+            multiple
+            onFiles={chooseStoryImages}
+          />
           {storyImages.length > 0 && (
             <div className="story-image-preview" aria-label={`已选 ${storyImages.length} 张现场照片`}>
               {storyImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" />)}

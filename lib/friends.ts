@@ -89,6 +89,26 @@ export async function findUserForFriendQuery(query: string, meId: string) {
   return named.length === 1 ? named[0] : null;
 }
 
+export async function acceptedFriendIds(meId: string, candidateIds: string[]) {
+  const unique = Array.from(new Set(candidateIds.filter((id) => id && id !== meId)));
+  if (!unique.length) return [];
+  const rows = await prisma.friendship.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [
+        { requesterId: meId, addresseeId: { in: unique } },
+        { addresseeId: meId, requesterId: { in: unique } },
+      ],
+    },
+    select: { requesterId: true, addresseeId: true },
+  });
+  const allowed = new Set<string>();
+  for (const row of rows) {
+    allowed.add(row.requesterId === meId ? row.addresseeId : row.requesterId);
+  }
+  return unique.filter((id) => allowed.has(id));
+}
+
 export async function searchPeople(query: string, meId: string) {
   const q = query.trim();
   if (!q) return [];
