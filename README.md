@@ -73,16 +73,15 @@ npm run dev
 
 ## 数据库与 API
 
-Schema 已包含 `User`、`Friendship`、`Story`、`StoryImage`、`StoryParticipant`、`Comment`。拉代码后对目标 `DATABASE_URL` 跑一次 `npm run db:push`（生产 Neon / 本地 `file:` sqlite）。这次没有新增 Prisma migration 文件。
+Schema 已包含 `User`、`Friendship`、`Story`、`StoryImage`、`StoryParticipant`、`Comment`、`Like`。拉代码后对目标 `DATABASE_URL` 跑一次 `npm run db:push`（生产 Neon / 本地 `file:` sqlite）。这次没有新增 Prisma migration 文件。空库与图片存储步骤见 [docs/ops-db.md](docs/ops-db.md)。
 
 已接线的接口：
 
 - `/api/auth/*`：注册、验证、忘记/重置密码、Credentials 登录
 - `/api/friends`、`/api/friends/search`、`/api/friends/[id]`：好友搜索与请求
 - `/api/me`：资料
-- `/api/stories`、`/api/stories/[id]`、`/api/stories/[id]/comments`：趣事与评论
-
-喜欢仍是客户端状态（没有 Like 表）。扣物大图若超过约 1.2MB 不会写入数据库；生产持久图片需要 Blob/S3。
+- `/api/stories`、`/api/stories/[id]`、`/api/stories/[id]/comments`、`/api/stories/[id]/likes`：趣事、评论与喜欢
+- `/api/uploads`：登录后上传物品图/趣事图；有 `BLOB_READ_WRITE_TOKEN` 时写入 Vercel Blob，否则仅允许较小的 data URL
 
 ## 品牌
 
