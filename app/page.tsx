@@ -633,6 +633,65 @@ async function toPersistableImage(url: string, blob?: Blob | null) {
   });
 }
 
+function UploadZone({
+  label,
+  icon,
+  multiple = false,
+  onFiles,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  multiple?: boolean;
+  onFiles: (files: FileList | null) => void;
+}) {
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  return (
+    <div className="upload-zone">
+      <div className="upload-box">
+        <span className="upload-heading">
+          {icon}
+          <span className="upload-label">{label}</span>
+        </span>
+        <div className="upload-actions">
+          <button type="button" onClick={() => cameraRef.current?.click()} aria-label={`拍照，${label}`}>
+            拍照
+          </button>
+          <button type="button" onClick={() => galleryRef.current?.click()} aria-label={`从相册选择，${label}`}>
+            从相册选择
+          </button>
+        </div>
+      </div>
+      <input
+        ref={cameraRef}
+        className="upload-file"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleChange}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+      <input
+        ref={galleryRef}
+        className="upload-file"
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        onChange={handleChange}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
 function AddStory({
   onClose,
   onAdd,
@@ -832,11 +891,14 @@ function AddStory({
               </div>
             )}
           </div>
-          <span className="upload-box">
-            <Camera size={19} aria-hidden="true" />
-            <span className="upload-label">上传物品图片</span>
-            <input type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processImage(file); }} required={!isEdit} aria-label="上传物品图片" />
-          </span>
+          <UploadZone
+            label="上传物品图片"
+            icon={<Camera size={19} aria-hidden="true" />}
+            onFiles={(files) => {
+              const file = files?.[0];
+              if (file) void processImage(file);
+            }}
+          />
           {imageUrl && (
             <div className="cutout-preview">
               <img src={imageUrl} alt="" />
@@ -847,11 +909,12 @@ function AddStory({
               )}
             </div>
           )}
-          <span className="upload-box">
-            <Images size={19} aria-hidden="true" />
-            <span className="upload-label">上传图片</span>
-            <input type="file" accept="image/*" capture="environment" multiple onChange={(event) => chooseStoryImages(event.target.files)} aria-label="上传图片" />
-          </span>
+          <UploadZone
+            label="上传图片"
+            icon={<Images size={19} aria-hidden="true" />}
+            multiple
+            onFiles={chooseStoryImages}
+          />
           {storyImages.length > 0 && (
             <div className="story-image-preview" aria-label={`已选 ${storyImages.length} 张现场照片`}>
               {storyImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" />)}

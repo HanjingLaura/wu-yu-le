@@ -611,9 +611,15 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .picker-friend-row small{font:10px 'DM Mono',monospace;color:var(--muted)}
 .picker-check{display:grid;place-items:center;width:22px;height:22px;flex:none;border:1.5px solid var(--ink);border-radius:50%;color:var(--paper)}
 .picker-check.is-selected{background:var(--ink)}
-.upload-box{justify-content:center;align-items:center;min-height:52px;gap:8px}
-.upload-box svg,.upload-box .upload-label{position:relative;z-index:1;pointer-events:none;flex:none}
+.upload-zone{position:relative}
+.upload-box{flex-direction:column;justify-content:center;align-items:center;min-height:88px;gap:10px;padding:14px 12px 12px}
+.upload-box svg,.upload-box .upload-label{position:relative;z-index:1;flex:none}
+.upload-heading{display:flex;align-items:center;gap:8px}
 .upload-label{font-size:13px;line-height:1.2;color:var(--ink)}
+.upload-actions{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.upload-actions button{flex:1;min-height:36px;padding:6px 10px;border:1px solid var(--ink);border-radius:999px;background:transparent;color:var(--ink);font-size:12px;line-height:1.2}
+.upload-actions button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.add-sheet .upload-file{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;opacity:0;pointer-events:none}
 .friends-toolbar{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 .friends-toolbar .add-friend{flex:none;padding:8px 2px;min-width:36px;min-height:36px}
 .friends-toolbar .search-field{flex:1;min-width:0;margin:0;padding:10px 0 8px}
