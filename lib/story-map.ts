@@ -9,6 +9,8 @@ export type StoryRecord = {
   story: Story;
   item: ShelfObject;
   comments: StoryComment[];
+  likes: number;
+  liked: boolean;
 };
 
 type MappedStory = {
@@ -28,6 +30,8 @@ type MappedStory = {
     body: string;
     author: { name: string | null; username: string | null; email: string };
   }[];
+  _count?: { likes: number };
+  likes?: { userId: string }[];
 };
 
 function pad(value: number) {
@@ -105,5 +109,11 @@ export function toStoryRecord(row: MappedStory, viewerId?: string | null): Story
     }).name,
     text: comment.body,
   }));
-  return { story, item, comments };
+  return {
+    story,
+    item,
+    comments,
+    likes: row._count?.likes ?? 0,
+    liked: Boolean(row.likes?.length),
+  };
 }

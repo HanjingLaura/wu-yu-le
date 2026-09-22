@@ -26,6 +26,7 @@ model User {
   stories       Story[]   @relation("StoryAuthor")
   memberships   StoryParticipant[]
   comments      Comment[]
+  likes         Like[]
   sentFriends   Friendship[] @relation("FriendshipRequester")
   receivedFriends Friendship[] @relation("FriendshipAddressee")
   verificationTokens EmailVerificationToken[]
@@ -108,6 +109,7 @@ model Story {
   images      StoryImage[]
   participants StoryParticipant[]
   comments    Comment[]
+  likes       Like[]
 
   @@index([authorId, happenedAt])
   @@index([privacy, happenedAt])
@@ -147,6 +149,19 @@ model Comment {
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([storyId, createdAt])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  createdAt DateTime @default(now())
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@index([userId])
 }
 
 model Friendship {

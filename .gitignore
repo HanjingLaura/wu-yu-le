@@ -6,6 +6,6 @@ out
 prisma/*.db
 prisma/*.db-journal
 prisma/.generated.prisma
-uploads
+/uploads
 .DS_Store
 *.tsbuildinfo

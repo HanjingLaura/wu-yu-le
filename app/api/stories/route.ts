@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
 import { getCurrentUser } from "@/lib/auth";
 import { storyInclude, storyVisibleWhere } from "@/lib/story-access";
+import { acceptedFriendIds } from "@/lib/friends";
 import { parseHappenedAt, sanitizeImageUrl, toStoryRecord } from "@/lib/story-map";
 
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ export async function GET() {
   const user = await getCurrentUser();
   const rows = await prisma.story.findMany({
     where: storyVisibleWhere(user?.id),
-    include: storyInclude,
+    include: storyInclude(user?.id),
     orderBy: { happenedAt: "desc" },
     take: 80,
   });
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "需要标题和正文。" }, { status: 400 });
   }
   const privacy = body.privacy === "PUBLIC" ? "PUBLIC" : "PRIVATE";
-  const peopleIds = Array.from(new Set((body.peopleIds ?? []).filter((id) => id && id !== user.id))).slice(0, 20);
+  const peopleIds = (await acceptedFriendIds(user.id, body.peopleIds ?? [])).slice(0, 20);
   const objectImage = sanitizeImageUrl(body.objectImage);
   const storyImages = (body.storyImages ?? []).map(sanitizeImageUrl).filter((url): url is string => Boolean(url)).slice(0, 6);
   const images = [
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
       },
       images: images.length ? { create: images } : undefined,
     },
-    include: storyInclude,
+    include: storyInclude(user.id),
   });
   return NextResponse.json({ ok: true, record: toStoryRecord(row, user.id) }, { status: 201 });
 }

@@ -30,7 +30,8 @@ npm run dev
    - `https://hanjing-laura.vercel.app/wuyule`（经作品集反代访问）
    - 或 `https://wu-yu-le.vercel.app/wuyule`（项目自身域名）
    不要把未使用的主机写死在代码里。
-4. 首次上线后对生产库执行 `prisma db push` 或迁移（在本地指向生产 URL，或用 Vercel 的一次-off 命令）。
+4. 首次上线后对生产库执行 `prisma db push` 或迁移（在本地指向生产 URL，或用 Vercel 的一次-off 命令）。空库步骤、sqlite 本地库和图片存储见 [docs/ops-db.md](docs/ops-db.md)。
+5. 生产图片需要 Vercel Blob 的 `BLOB_READ_WRITE_TOKEN`。未配置时本地可用小 data URL 兜底，生产图片持久化会失败。
 
 作品集仓库需把 `/wuyule`、`/wuyule/:path*` rewrite 到 `https://wu-yu-le.vercel.app/wuyule/`（与 `/A-le-ge-I` 一样，destination 带 basePath）。本应用 `trailingSlash: true` 且 `skipTrailingSlashRedirect: true`，因此 `/wuyule/` 返回 200，不会再 308 回 `/wuyule` 与作品集互相跳转；Auth.js 的 `/api/auth/*` 也不会被改写成带斜杠的地址。
 
@@ -41,6 +42,7 @@ npm run dev
 - `DATABASE_URL`：生产为 Postgres URL；本地 sqlite 用 `file:./dev.db`。未设置时，`prisma generate` / `next build` 会使用占位 Postgres URL，以便 Vercel 构建通过。
 - `NEXTAUTH_URL`、`NEXTAUTH_SECRET`：Auth.js 会话配置。`NEXTAUTH_URL` 应包含 `/wuyule`。
 - `MAIL_MODE`：开发时默认 `console`（验证邮件和重置链接打印到终端）；邮件传输层可替换为 Ethereal。生产邮件可填 `RESEND_API_KEY` 与 `RESEND_FROM`（`EMAIL_FROM` 保留作默认发件人标识）。
+- `BLOB_READ_WRITE_TOKEN`：Vercel Blob。生产上架/编辑图片应写入 Blob URL；未配置时仅允许较小的 data URL。
 - `S3_*`：可选的 S3 兼容图片存储配置。未配置时使用本地 `uploads/` 占位路径。
 
 不要把 `.env` / `.env.local`、数据库文件或邮件密钥提交到仓库。

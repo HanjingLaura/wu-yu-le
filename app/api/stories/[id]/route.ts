@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
+import { acceptedFriendIds } from "@/lib/friends";
 import { storyInclude } from "@/lib/story-access";
 import { parseHappenedAt, sanitizeImageUrl, toStoryRecord } from "@/lib/story-map";
 
@@ -30,7 +31,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: "需要标题和正文。" }, { status: 400 });
   }
   const privacy = body.privacy === "PUBLIC" ? "PUBLIC" : "PRIVATE";
-  const peopleIds = Array.from(new Set((body.peopleIds ?? []).filter((id) => id && id !== user.id))).slice(0, 20);
+  const peopleIds = (await acceptedFriendIds(user.id, body.peopleIds ?? [])).slice(0, 20);
   const objectImage = sanitizeImageUrl(body.objectImage);
   const storyImages = (body.storyImages ?? []).map(sanitizeImageUrl).filter((url): url is string => Boolean(url)).slice(0, 6);
   const images = [
@@ -56,7 +57,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }),
   ]);
 
-  const row = await prisma.story.findUnique({ where: { id: existing.id }, include: storyInclude });
+  const row = await prisma.story.findUnique({ where: { id: existing.id }, include: storyInclude(user.id) });
   if (!row) return NextResponse.json({ error: "无法保存。" }, { status: 500 });
   return NextResponse.json({ ok: true, record: toStoryRecord(row, user.id) });
 }
