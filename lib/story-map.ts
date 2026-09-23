@@ -56,14 +56,25 @@ export function parseHappenedAt(value: string) {
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 }
 
+export const TITLE_MAX = 80;
+export const CONTENT_MAX = 4000;
+
+export function parseStoryInput(body: { title?: string; content?: string; privacy?: string; happenedAt?: string }) {
+  const title = body.title?.trim().slice(0, TITLE_MAX) ?? "";
+  const content = body.content?.trim().slice(0, CONTENT_MAX) ?? "";
+  const privacy = body.privacy === "PUBLIC" ? "PUBLIC" : "PRIVATE";
+  return { title, content, privacy, happenedAt: parseHappenedAt(body.happenedAt ?? "") };
+}
+
 export function sanitizeImageUrl(url: string | undefined | null) {
   if (!url) return null;
-  if (url.startsWith("blob:")) return null;
-  if (url.startsWith("data:") && url.length > 1_200_000) return null;
-  if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
-    return url.startsWith("/") && !url.startsWith(`${APP_BASE_PATH}/`) && url !== APP_BASE_PATH
-      ? `${APP_BASE_PATH}${url}`
-      : url;
+  const value = url.trim();
+  if (value.startsWith("blob:") || value.startsWith("//")) return null;
+  if (value.startsWith("data:image/") && value.length <= 1_200_000) return value;
+  if (value.startsWith("https://")) return value;
+  if (value.startsWith("http://localhost") || value.startsWith("http://127.0.0.1")) return value;
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return value.startsWith(`${APP_BASE_PATH}/`) || value === APP_BASE_PATH ? value : `${APP_BASE_PATH}${value}`;
   }
   return null;
 }
@@ -88,6 +99,9 @@ export function toStoryRecord(row: MappedStory, viewerId?: string | null): Story
     storyImages,
     tone: "sand",
     people,
+    peopleIds: row.participants
+      .filter((participant) => participant.user.id !== row.authorId)
+      .map((participant) => participant.user.id),
     public: row.privacy === "PUBLIC",
   };
   const item: ShelfObject = {

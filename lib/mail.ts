@@ -39,3 +39,10 @@ export async function sendOrReturnLink(payload: { to: string; subject: string; t
     return { delivered: false as const, preview: payload.text.match(/https?:\/\/\S+/)?.[0] };
   }
 }
+
+/** Dev-only: expose verification/reset URLs in API JSON. Never do this in production. */
+export function allowDevMailLinks() {
+  if (process.env.NODE_ENV === "production") return false;
+  const mode = process.env.MAIL_MODE ?? "console";
+  return mode === "console";
+}

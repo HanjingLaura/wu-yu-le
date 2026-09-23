@@ -13,6 +13,7 @@ export type Story = {
   storyImages: string[];
   tone: string;
   people: string[];
+  peopleIds?: string[];
   public: boolean;
 };
 
