@@ -111,9 +111,10 @@ export async function acceptedFriendIds(meId: string, candidateIds: string[]) {
 
 export async function searchPeople(query: string, meId: string) {
   const q = query.trim();
-  if (!q) return [];
+  if (q.length < 2) return [];
   const email = q.toLowerCase();
   const username = q.replace(/^@/, "").toLowerCase();
+  const looksLikeEmail = email.includes("@");
 
   const users = await prisma.user.findMany({
     where: {
@@ -121,9 +122,7 @@ export async function searchPeople(query: string, meId: string) {
       OR: [
         { email },
         { username },
-        { username: { contains: username, ...textSearch } },
-        { name: { contains: q, ...textSearch } },
-        { email: { contains: email, ...textSearch } },
+        ...(looksLikeEmail ? [] : [{ username: { contains: username, ...textSearch } }, { name: { contains: q, ...textSearch } }]),
       ],
     },
     select: userSelect,
@@ -158,7 +157,7 @@ export async function searchPeople(query: string, meId: string) {
               : "outgoing"
             : "none";
     if (relation === "blocked") continue;
-    results.push({ ...toPublicPerson(user), relation });
+    results.push({ ...toPublicPerson(user, { revealEmail: looksLikeEmail && user.email === email }), relation });
   }
   return results;
 }

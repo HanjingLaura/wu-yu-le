@@ -20,7 +20,22 @@ Optional demo account (`hello@wuyule.local` / `wuyule-demo`):
 npm run db:seed
 ```
 
-If the production database is still empty, the homepage uses local sample cutouts only as demo fill. After the first real story is saved, the shelf reads the API.
+If the production database is still empty **or the schema has not been pushed**, `GET /api/stories` returns `{ records: [], source }` with HTTP 200 (`source` is `empty` after a successful query, or `missing_schema` when Prisma reports P2021). The homepage uses local sample cutouts as demo fill and shows a short note. After the first real story is saved, the shelf reads the API.
+
+## Production status (reviewed 2026-09-23)
+
+Verified against `https://wu-yu-le.vercel.app/wuyule/` and Vercel project `wu-yu-le` (`prj_F9Sz1inf5IVyRGtzEKiZZHTlav37`):
+
+| Item | Status |
+| --- | --- |
+| Latest production deploy | READY (`ce7b007` on `main`) |
+| `DATABASE_URL` (Neon, preview + production) | Present |
+| `NEXTAUTH_URL` / `NEXTAUTH_SECRET` | Present (preview + production) |
+| `BLOB_READ_WRITE_TOKEN` | Present after creating store `wu-yu-le-blob` (`store_6s7hIKRnAE7OtTfG`). Existing production deploy still needs a redeploy to pick it up. |
+| Schema tables (`User`, `Story`, …) | **Missing** — runtime P2021 |
+| SMTP / Resend | Optional; password reset in production needs working mail |
+
+Until `npm run db:push` is run against the production `DATABASE_URL` (prefer the unpooled Neon URL), register / friends / me / story writes cannot succeed. This agent will try to push if it can reach the URL; otherwise Laura should run the command below from a machine that can see the Neon project.
 
 ## Local sqlite
 
@@ -43,9 +58,13 @@ Open http://localhost:3000/wuyule/
 Add/edit uploads a data URL to `POST /api/uploads` (auth required), then stores the returned URL on the story.
 
 - Production: set `BLOB_READ_WRITE_TOKEN` from a Vercel Blob store. Object and story images become durable public URLs.
-- Local / missing token: small `data:` URLs are stored as a fallback. Large images fail until Blob is configured.
+- Local / missing token / Blob error: small `data:` URLs are stored as a fallback so the story can still save. Large images are skipped (story text still writes).
 
-Without `BLOB_READ_WRITE_TOKEN`, production image durability is blocked.
+A public Blob store `wu-yu-le-blob` was created and `BLOB_READ_WRITE_TOKEN` is now on production / preview / development. Redeploy (or merge this branch) before production uploads use it.
+
+## Password reset / verification mail
+
+Production must not return reset tokens in API JSON. If Resend is not delivering, forgot-password only shows the generic “if the email exists” copy. Register auto-verifies when mail is not delivered so a first account can still log in; turn on Resend when you want real verification.
 
 ## Auth URLs
 

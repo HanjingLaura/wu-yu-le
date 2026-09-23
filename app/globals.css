@@ -622,6 +622,7 @@ body{font-family:'DM Sans','Noto Sans SC',sans-serif}
 .shelf-search{display:flex;align-items:center;gap:8px;min-width:0;max-width:220px;color:var(--ink)}
 .shelf-search input{min-width:0;flex:1;border:0;border-bottom:1.5px solid var(--ink);background:transparent;padding:6px 0;outline:0;font-size:13px;color:var(--ink)}
 .shelf-empty-search{margin:28px 0 0;color:var(--muted);font-size:13px}
+.demo-fill-note{margin:0 0 14px;color:var(--muted);font:500 12px/1.5 'Noto Sans SC',sans-serif}
 .friends-toolbar{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 .friends-toolbar .add-friend{flex:none;padding:8px 2px;min-width:36px;min-height:36px}
 .friends-toolbar .search-field{flex:1;min-width:0;margin:0;padding:10px 0 8px}

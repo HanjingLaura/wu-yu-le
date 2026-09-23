@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
+import { catchDbError } from "@/lib/db-errors";
 import { storyVisibleWhere } from "@/lib/story-access";
 
 export const runtime = "nodejs";
@@ -9,6 +10,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
   const { user, response } = await requireApiUser();
   if (!user) return response;
 
+  try {
   const story = await prisma.story.findFirst({
     where: { id: params.id, AND: [storyVisibleWhere(user.id)] },
     select: { id: true },
@@ -28,4 +30,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
   const likes = await prisma.like.count({ where: { storyId: story.id } });
   return NextResponse.json({ ok: true, liked: !existing, likes });
+  } catch (error) {
+    return catchDbError(error, "无法喜欢。");
+  }
 }

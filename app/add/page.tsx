@@ -3,6 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 
 export default async function AddPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=/?view=add");
   redirect("/?view=add");
 }
