@@ -3,6 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 
 export default async function MePage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/?view=me");
+  if (!user) redirect(`/login?next=${encodeURIComponent("/?view=me")}`);
   redirect("/?view=me");
 }

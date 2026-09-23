@@ -65,7 +65,7 @@ export default function Home() {
 
   const openAdd = useCallback(() => {
     if (status === "unauthenticated") {
-      router.push("/login?next=/?view=add");
+      router.push(`/login?next=${encodeURIComponent("/?view=add")}`);
       return;
     }
     setShowAdd(true);
@@ -73,7 +73,7 @@ export default function Home() {
 
   const openTab = useCallback((next: Tab) => {
     if ((next === "friends" || next === "me") && status === "unauthenticated") {
-      router.push(`/login?next=/?view=${next}`);
+      router.push(`/login?next=${encodeURIComponent(`/?view=${next}`)}`);
       return;
     }
     setTab(next);
@@ -86,14 +86,14 @@ export default function Home() {
     if (view === "gallery") setTab("gallery");
     if (view === "add") {
       if (status === "unauthenticated") {
-        router.replace("/login?next=/?view=add");
+        router.replace(`/login?next=${encodeURIComponent("/?view=add")}`);
         return;
       }
       if (status === "authenticated") setShowAdd(true);
     }
     if (view === "friends" || view === "me") {
       if (status === "unauthenticated") {
-        router.replace(`/login?next=/?view=${view}`);
+        router.replace(`/login?next=${encodeURIComponent(`/?view=${view}`)}`);
         return;
       }
       if (status === "authenticated") setTab(view);
