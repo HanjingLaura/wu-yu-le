@@ -30,7 +30,7 @@ npm run dev
    - `https://hanjing-laura.vercel.app/wuyule`（经作品集反代访问）
    - 或 `https://wu-yu-le.vercel.app/wuyule`（项目自身域名）
    不要把未使用的主机写死在代码里。
-4. 首次上线后对生产库执行 `prisma db push` 或迁移（在本地指向生产 URL，或用 Vercel 的一次-off 命令）。空库步骤、sqlite 本地库和图片存储见 [docs/ops-db.md](docs/ops-db.md)。
+4. 生产构建会在 `DATABASE_URL` 存在时执行 `prisma db push`，把当前 schema 建到连接的 Postgres。也可以在本地指向生产 URL 手动跑 `npm run db:push`。空库步骤、sqlite 本地库和图片存储见 [docs/ops-db.md](docs/ops-db.md)。
 5. 生产图片需要 Vercel Blob 的 `BLOB_READ_WRITE_TOKEN`。未配置时本地可用小 data URL 兜底，生产图片持久化会失败。
 
 作品集仓库需把 `/wuyule`、`/wuyule/:path*` rewrite 到 `https://wu-yu-le.vercel.app/wuyule/`（与 `/A-le-ge-I` 一样，destination 带 basePath）。本应用 `trailingSlash: true` 且 `skipTrailingSlashRedirect: true`，因此 `/wuyule/` 返回 200，不会再 308 回 `/wuyule` 与作品集互相跳转；Auth.js 的 `/api/auth/*` 也不会被改写成带斜杠的地址。

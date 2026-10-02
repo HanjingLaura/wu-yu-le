@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node prisma/with-env.mjs generate && next build",
+    "build": "node prisma/with-env.mjs db push --skip-generate && node prisma/with-env.mjs generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
