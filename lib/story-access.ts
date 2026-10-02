@@ -11,6 +11,18 @@ export function storyVisibleWhere(userId?: string | null): Prisma.StoryWhereInpu
   };
 }
 
+/** Shelf and timeline: only records this account owns or was invited into. */
+export function storyShelfWhere(userId: string): Prisma.StoryWhereInput {
+  return {
+    OR: [{ authorId: userId }, { participants: { some: { userId } } }],
+  };
+}
+
+/** Gallery: public posts only. Private rows stay on the author's shelf. */
+export function storyGalleryWhere(): Prisma.StoryWhereInput {
+  return { privacy: "PUBLIC" };
+}
+
 export function storyInclude(viewerId?: string | null) {
   return {
     images: { orderBy: { sortOrder: "asc" as const } },

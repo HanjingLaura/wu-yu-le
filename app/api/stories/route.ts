@@ -2,16 +2,26 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
 import { getCurrentUser } from "@/lib/auth";
-import { storyInclude, storyVisibleWhere } from "@/lib/story-access";
+import { storyGalleryWhere, storyInclude, storyShelfWhere, storyVisibleWhere } from "@/lib/story-access";
 import { acceptedFriendIds } from "@/lib/friends";
 import { parseHappenedAt, sanitizeImageUrl, toStoryRecord } from "@/lib/story-map";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
+  const scope = new URL(request.url).searchParams.get("scope");
+  if (scope === "shelf" && !user) {
+    return NextResponse.json({ records: [] });
+  }
+  const where =
+    scope === "shelf" && user
+      ? storyShelfWhere(user.id)
+      : scope === "gallery"
+        ? storyGalleryWhere()
+        : storyVisibleWhere(user?.id);
   const rows = await prisma.story.findMany({
-    where: storyVisibleWhere(user?.id),
+    where,
     include: storyInclude(user?.id),
     orderBy: { happenedAt: "desc" },
     take: 80,

@@ -51,8 +51,13 @@ if (provider === "sqlite" || (provider === "postgresql" && directDatabaseUrl)) {
 const args = process.argv.slice(2);
 if (args.length === 0) args.push("generate");
 
-if (args[0] === "db" && args[1] === "push" && !databaseUrlProvided) {
-  console.info("Skipping prisma db push: DATABASE_URL is not set.");
+const isPreviewDeploy = process.env.VERCEL_ENV === "preview";
+if (args[0] === "db" && args[1] === "push" && (!databaseUrlProvided || isPreviewDeploy)) {
+  console.info(
+    isPreviewDeploy
+      ? "Skipping prisma db push on preview. Preview must use its own DATABASE_URL and must not migrate production."
+      : "Skipping prisma db push: DATABASE_URL is not set.",
+  );
   process.exit(0);
 }
 

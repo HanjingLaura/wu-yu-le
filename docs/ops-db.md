@@ -6,7 +6,7 @@ Do not commit connection strings, `NEXTAUTH_SECRET`, or blob tokens.
 
 ## Empty Neon / first deploy
 
-Vercel builds run `prisma db push` when `DATABASE_URL` is set (`npm run build`). That creates `User` and the rest of the schema on the connected Postgres database. DDL uses `DATABASE_URL_UNPOOLED` or `DATABASE_POSTGRES_URL_NON_POOLING` when one of those is present.
+Production builds (`VERCEL_ENV=production`) run `prisma db push` when `DATABASE_URL` is set (`npm run build`). Preview builds skip that push so they do not migrate the production database. Give preview its own `DATABASE_URL`; do not point it at the production Neon branch. DDL uses `DATABASE_URL_UNPOOLED` or `DATABASE_POSTGRES_URL_NON_POOLING` when one of those is present.
 
 From the repo root, with the production URL in the environment (Vercel env, or a one-off local shell — do not paste secrets into the repo):
 
