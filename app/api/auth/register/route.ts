@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { createRawToken, hashToken } from "@/lib/tokens";
-import { sendOrReturnLink } from "@/lib/mail";
+import { isMissingSchemaError } from "@/lib/db-errors";
+import { allowDevMailLinks, sendOrReturnLink } from "@/lib/mail";
 import { getAppUrl } from "@/lib/app-url";
 import { normalizeUsername, validUsername } from "@/lib/people";
 
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { email?: string; password?: string; name?: string; username?: string };
     const email = body.email?.trim().toLowerCase();
     const password = body.password;
-    if (!email || !password || password.length < 8) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password.length < 8) {
       return NextResponse.json({ error: "需要邮箱和至少 8 位密码。" }, { status: 400 });
     }
     const username = normalizeUsername(body.username);
@@ -45,16 +46,26 @@ export async function POST(request: Request) {
       subject: "Verify your WuyuLe email",
       text: `Welcome to WuyuLe. Verify your email here: ${verificationUrl}`,
     });
+    if (!mail.delivered) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      });
+    }
     return NextResponse.json(
       {
         ok: true,
-        requiresVerification: true,
-        ...(!mail.delivered ? { verificationUrl, mailPreview: mail.preview } : {}),
+        requiresVerification: mail.delivered,
+        autoVerified: !mail.delivered,
+        ...(!mail.delivered && allowDevMailLinks() ? { verificationUrl, mailPreview: mail.preview } : {}),
       },
       { status: 201 },
     );
   } catch (error) {
     console.error("registration failed", error);
+    if (isMissingSchemaError(error)) {
+      return NextResponse.json({ error: "数据库尚未初始化。", code: "MISSING_SCHEMA" }, { status: 503 });
+    }
     return NextResponse.json({ error: "无法创建账号。" }, { status: 500 });
   }
 }

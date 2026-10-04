@@ -31,7 +31,9 @@ export default function LoginPage() {
     const result = await signIn("credentials", { email, password, redirect: false });
     setBusy(false);
     if (result?.ok) {
-      router.replace("/");
+      const next = new URLSearchParams(window.location.search).get("next") ?? "/";
+      const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      router.replace(safeNext);
       return;
     }
     setError(true);

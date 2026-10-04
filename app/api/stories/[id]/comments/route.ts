@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
 import { getCurrentUser } from "@/lib/auth";
 import { storyVisibleWhere } from "@/lib/story-access";
+import { catchDbError, isMissingSchemaError } from "@/lib/db-errors";
 import { toPublicPerson } from "@/lib/people";
 
 export const runtime = "nodejs";
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
+  try {
   const user = await getCurrentUser();
   const story = await prisma.story.findFirst({
     where: { id: params.id, AND: [storyVisibleWhere(user?.id)] },
@@ -27,6 +29,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       text: comment.body,
     })),
   });
+  } catch (error) {
+    if (isMissingSchemaError(error)) return NextResponse.json({ comments: [] });
+    return catchDbError(error, "无法读取评论。");
+  }
 }
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
@@ -36,6 +42,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const text = body.text?.trim();
   if (!text) return NextResponse.json({ error: "需要评论内容。" }, { status: 400 });
 
+  try {
   const story = await prisma.story.findFirst({
     where: { id: params.id, AND: [storyVisibleWhere(user.id)] },
     select: { id: true },
@@ -54,4 +61,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       text: comment.body,
     },
   }, { status: 201 });
+  } catch (error) {
+    return catchDbError(error, "无法评论。");
+  }
 }

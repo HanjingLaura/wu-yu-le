@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
+import { catchDbError } from "@/lib/db-errors";
 import { findUserForFriendQuery, listFriendships, relationBetween } from "@/lib/friends";
 
 export const runtime = "nodejs";
@@ -8,7 +9,11 @@ export const runtime = "nodejs";
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (!user) return response;
-  return NextResponse.json(await listFriendships(user.id));
+  try {
+    return NextResponse.json(await listFriendships(user.id));
+  } catch (error) {
+    return catchDbError(error, "无法读取好友。");
+  }
 }
 
 export async function POST(request: Request) {
@@ -16,6 +21,7 @@ export async function POST(request: Request) {
   if (!user) return response;
 
   const body = (await request.json()) as { userId?: string; query?: string };
+  try {
   const target = body.userId
     ? await prisma.user.findUnique({
         where: { id: body.userId },
@@ -63,4 +69,7 @@ export async function POST(request: Request) {
 
   const relation = await relationBetween(user.id, target.id);
   return NextResponse.json({ ok: true, status: row.status, id: row.id, relation }, { status: 201 });
+  } catch (error) {
+    return catchDbError(error, "无法添加。");
+  }
 }

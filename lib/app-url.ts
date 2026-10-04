@@ -30,3 +30,58 @@ export function getAppUrl() {
 
   return `http://localhost:3000${APP_BASE_PATH}`;
 }
+
+function originFrom(raw: string | undefined) {
+  if (!raw) return null;
+  try {
+    return (raw.includes("://") ? new URL(raw) : new URL(`https://${raw}`)).origin;
+  } catch {
+    return null;
+  }
+}
+
+export function allowedAuthOrigins() {
+  const origins = new Set<string>();
+  for (const raw of [
+    process.env.NEXTAUTH_URL,
+    process.env.AUTH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+    "https://wu-yu-le.vercel.app",
+    "https://hanjing-laura.vercel.app",
+    "http://localhost:3000",
+  ]) {
+    const origin = originFrom(raw);
+    if (origin) origins.add(origin);
+  }
+  return origins;
+}
+
+function withAppPath(path: string) {
+  if (path === APP_BASE_PATH || path.startsWith(`${APP_BASE_PATH}/`)) return path;
+  return `${APP_BASE_PATH}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+/** Keep NextAuth callbackUrl on this app (basePath /wuyule) and known hosts. */
+export function resolveAuthRedirect(url: string) {
+  const fallback = getAppUrl();
+  let fallbackOrigin = "http://localhost:3000";
+  try {
+    fallbackOrigin = new URL(fallback).origin;
+  } catch {
+    /* keep localhost */
+  }
+
+  if (url.startsWith("/") && !url.startsWith("//")) {
+    return `${fallbackOrigin}${withAppPath(url)}`;
+  }
+
+  try {
+    const target = new URL(url);
+    if (!allowedAuthOrigins().has(target.origin)) return fallback;
+    if (target.pathname !== APP_BASE_PATH && !target.pathname.startsWith(`${APP_BASE_PATH}/`)) return fallback;
+    return `${target.origin}${target.pathname}${target.search}`;
+  } catch {
+    return fallback;
+  }
+}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api-auth";
+import { catchDbError } from "@/lib/db-errors";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: "无效操作。" }, { status: 400 });
   }
 
+  try {
   const row = await prisma.friendship.findUnique({ where: { id: params.id } });
   if (!row || row.status !== "PENDING" || row.addresseeId !== user.id) {
     return NextResponse.json({ error: "没有这条请求。" }, { status: 404 });
@@ -24,4 +26,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     data: { status: action === "accept" ? "ACCEPTED" : "DECLINED" },
   });
   return NextResponse.json({ ok: true, status: updated.status });
+  } catch (error) {
+    return catchDbError(error, "无法完成。");
+  }
 }
