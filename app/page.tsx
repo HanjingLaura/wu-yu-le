@@ -26,7 +26,7 @@ import {
 import { type ShelfObject, type Story } from "@/lib/sample-shelf";
 import EventDetail, { defaultEventSocial, type EventSocial } from "@/components/EventDetail";
 import { apiPath, withBasePath } from "@/lib/base-path";
-import type { FriendRelation, PublicPerson } from "@/lib/people";
+import { initialsFrom, type FriendRelation, type PublicPerson } from "@/lib/people";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
 type SearchPerson = PublicPerson & { relation: FriendRelation; friendshipId?: string | null };
@@ -59,7 +59,7 @@ export default function Home() {
 
   const openAdd = useCallback(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push(`/login?next=${encodeURIComponent("/?view=add")}`);
       return;
     }
     setShowAdd(true);
@@ -67,7 +67,7 @@ export default function Home() {
 
   const openTab = useCallback((next: Tab) => {
     if ((next === "friends" || next === "me") && status === "unauthenticated") {
-      router.push("/login");
+      router.push(`/login?next=${encodeURIComponent(`/?view=${next}`)}`);
       return;
     }
     setTab(next);
@@ -80,14 +80,14 @@ export default function Home() {
     if (view === "gallery") setTab("gallery");
     if (view === "add") {
       if (status === "unauthenticated") {
-        router.replace("/login");
+        router.replace(`/login?next=${encodeURIComponent("/?view=add")}`);
         return;
       }
       if (status === "authenticated") setShowAdd(true);
     }
     if (view === "friends" || view === "me") {
       if (status === "unauthenticated") {
-        router.replace("/login");
+        router.replace(`/login?next=${encodeURIComponent(`/?view=${view}`)}`);
         return;
       }
       if (status === "authenticated") setTab(view);
@@ -136,7 +136,7 @@ export default function Home() {
     const key = String(id);
     if (typeof id === "number") return;
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push("/login?next=/");
       return;
     }
     const response = await fetch(apiPath(`/api/stories/${id}/likes`), { method: "POST" });
@@ -681,19 +681,32 @@ async function toPersistableImage(url: string, blob?: Blob | null) {
   });
 }
 
-async function persistStoredImage(url: string, blob?: Blob | null) {
+async function persistStoredImage(url: string, blob?: Blob | null): Promise<{ url: string; degraded?: string }> {
   const persistable = await toPersistableImage(url, blob);
-  if (!persistable || persistable.startsWith("http://") || persistable.startsWith("https://") || persistable.startsWith("/")) {
-    return persistable;
+  if (!persistable) return { url: "", degraded: "图片未能保存。" };
+  if (persistable.startsWith("http://") || persistable.startsWith("https://") || persistable.startsWith("/")) {
+    return { url: persistable };
   }
-  const response = await fetch(apiPath("/api/uploads"), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ dataUrl: persistable }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (response.ok && typeof data.url === "string" && data.url) return data.url;
-  throw new Error(data.error ?? "无法保存图片。");
+  try {
+    const response = await fetch(apiPath("/api/uploads"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dataUrl: persistable }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && typeof data.url === "string" && data.url) {
+      return { url: data.url, degraded: data.fallback === "data" ? "图片未写入对象存储，已用临时图。" : undefined };
+    }
+    if (persistable.startsWith("data:") && persistable.length <= 1_200_000) {
+      return { url: persistable, degraded: typeof data.error === "string" ? data.error : "图片未写入对象存储，已用临时图。" };
+    }
+    return { url: "", degraded: typeof data.error === "string" ? data.error : "图片未能保存。" };
+  } catch {
+    if (persistable.startsWith("data:") && persistable.length <= 1_200_000) {
+      return { url: persistable, degraded: "图片未写入对象存储，已用临时图。" };
+    }
+    return { url: "", degraded: "图片未能保存。" };
+  }
 }
 
 function ImagePickZone({
@@ -779,9 +792,16 @@ function AddStory({
   const [date, setDate] = useState(initial ? parseInputDate(initial.story.date) : "2024-06-14");
   const [title, setTitle] = useState(initial?.story.title ?? "");
   const [content, setContent] = useState(initial?.story.content ?? "");
-  const [people, setPeople] = useState<string[]>(initial?.story.people ?? []);
+  const [selectedFriends, setSelectedFriends] = useState<PublicPerson[]>(() =>
+    (initial?.story.people ?? []).map((name, index) => ({
+      id: initial?.story.peopleIds?.[index] ?? "",
+      name,
+      handle: name,
+      initials: initialsFrom(name),
+    })),
+  );
   const [pickingFriends, setPickingFriends] = useState(false);
-  const [draftPeople, setDraftPeople] = useState<string[]>([]);
+  const [draftPeople, setDraftPeople] = useState<PublicPerson[]>([]);
   const [imageUrl, setImageUrl] = useState(initial?.objectImage || initial?.story.objectImage || "");
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
   const [replacedObject, setReplacedObject] = useState(false);
@@ -800,16 +820,16 @@ function AddStory({
   };
 
   const openFriendPicker = () => {
-    setDraftPeople(people);
+    setDraftPeople(selectedFriends);
     if (!pickerFriends.length) loadPickerFriends();
     setPickingFriends(true);
   };
   const confirmFriendPicker = () => {
-    setPeople(draftPeople);
+    setSelectedFriends(draftPeople);
     setPickingFriends(false);
   };
-  const toggleDraftFriend = (name: string) => {
-    setDraftPeople((current) => current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name]);
+  const toggleDraftFriend = (person: PublicPerson) => {
+    setDraftPeople((current) => (current.some((entry) => entry.id === person.id) ? current.filter((entry) => entry.id !== person.id) : [...current, person]));
   };
 
   const processImage = async (file: File) => {
@@ -859,7 +879,7 @@ function AddStory({
     const id = initial?.story.dbId ?? initial?.story.id ?? Date.now();
     const normalizedTitle = title.trim();
     const normalizedContent = content.trim();
-    const normalizedPeople = people;
+    const normalizedPeople = selectedFriends.map((person) => person.name);
     const formattedDate = formatShelfDate(date);
     let story: Story = {
       id,
@@ -888,24 +908,19 @@ function AddStory({
     if (status === "authenticated") {
       try {
         setSaving(true);
-        const objectImage = await persistStoredImage(imageUrl, imageBlob);
-        const persistedPhotos = await Promise.all(storyImages.map((photo) => persistStoredImage(photo)));
-        let friends = pickerFriends;
-        if (!friends.length) {
-          const list = await fetch(apiPath("/api/friends")).then((response) => (response.ok ? response.json() : { friends: [] }));
-          friends = Array.isArray(list.friends) ? list.friends : [];
-          setPickerFriends(friends);
-        }
-        const peopleIds = friends.filter((person) => people.includes(person.name)).map((person) => person.id);
+        const objectResult = await persistStoredImage(imageUrl, imageBlob);
+        const photoResults = await Promise.all(storyImages.map((photo) => persistStoredImage(photo)));
+        const peopleIds = selectedFriends.map((person) => person.id).filter(Boolean);
         const payload = {
           title: normalizedTitle,
           content: normalizedContent,
           happenedAt: date,
           privacy: visibility,
           peopleIds,
-          objectImage,
-          storyImages: persistedPhotos,
+          objectImage: objectResult.url,
+          storyImages: photoResults.map((photo) => photo.url).filter(Boolean),
         };
+        const imageWarning = [objectResult.degraded, ...photoResults.map((photo) => photo.degraded)].find(Boolean);
         const dbId = initial?.story.dbId;
         const response = await fetch(apiPath(dbId ? `/api/stories/${dbId}` : "/api/stories"), {
           method: dbId ? "PATCH" : "POST",
@@ -916,6 +931,7 @@ function AddStory({
         if (response.ok && data.record?.story) {
           story = data.record.story;
           item = data.record.item;
+          if (imageWarning) notify(imageWarning);
         } else if (!response.ok) {
           setSaving(false);
           setError(data.error ?? "无法写入。");
@@ -950,13 +966,13 @@ function AddStory({
           <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="给它一个名字" required aria-label="短标题" />
           <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="写下当时发生了什么…" rows={4} required aria-label="趣事正文" />
           <div className="friend-pick-field">
-            <button type="button" className="picker-row" onClick={openFriendPicker} aria-label={people.length ? `加入好友，已选 ${people.join("、")}` : "加入好友"}>
+            <button type="button" className="picker-row" onClick={openFriendPicker} aria-label={selectedFriends.length ? `加入好友，已选 ${selectedFriends.map((person) => person.name).join("、")}` : "加入好友"}>
               <span>加入好友</span>
               <ChevronRight size={18} aria-hidden="true" />
             </button>
-            {people.length > 0 && (
+            {selectedFriends.length > 0 && (
               <div className="friend-chips" aria-label="已选好友">
-                {people.map((name) => <span className="friend-chip" key={name}>{name}</span>)}
+                {selectedFriends.map((person) => <span className="friend-chip" key={person.id || person.name}>{person.name}</span>)}
               </div>
             )}
           </div>
@@ -1005,9 +1021,9 @@ function AddStory({
             </div>
             <div className="picker-list">
               {pickerFriends.map((person) => {
-                const selected = draftPeople.includes(person.name);
+                const selected = draftPeople.some((entry) => entry.id === person.id);
                 return (
-                  <button type="button" className={`picker-friend-row${selected ? " is-selected" : ""}`} key={person.id} onClick={() => toggleDraftFriend(person.name)} aria-pressed={selected}>
+                  <button type="button" className={`picker-friend-row${selected ? " is-selected" : ""}`} key={person.id} onClick={() => toggleDraftFriend(person)} aria-pressed={selected}>
                     <span className="person-avatar">{person.initials}</span>
                     <div><strong>{person.name}</strong><small>{person.handle}</small></div>
                     <span className={`picker-check${selected ? " is-selected" : ""}`} aria-hidden="true">{selected ? <Check size={13} /> : null}</span>

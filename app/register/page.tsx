@@ -30,8 +30,14 @@ export default function RegisterPage() {
       setMessage(data.error ?? "无法创建账号。");
       return;
     }
-    setMessage(data.verificationUrl ? "账号已创建。请打开验证链接后再登录。" : "账号已创建。请查看邮箱中的验证链接后再登录。");
-    setVerificationUrl(data.verificationUrl ?? "");
+    if (data.autoVerified) {
+      setMessage("账号已创建，可以登录。");
+    } else if (data.verificationUrl) {
+      setMessage("账号已创建。请打开验证链接后再登录。");
+      setVerificationUrl(data.verificationUrl);
+    } else {
+      setMessage("账号已创建。请查看邮箱中的验证链接后再登录。");
+    }
   }
 
   return (

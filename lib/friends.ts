@@ -20,7 +20,6 @@ function friendCard(user: {
   const person = toPublicPerson(user);
   return {
     ...person,
-    email: "",
     handle: user.username ? `@${user.username}` : "",
   };
 }
@@ -125,9 +124,10 @@ export async function acceptedFriendIds(meId: string, candidateIds: string[]) {
 
 export async function searchPeople(query: string, meId: string) {
   const q = query.trim();
-  if (!q) return [];
+  if (q.length < 2) return [];
   const email = q.toLowerCase();
   const username = q.replace(/^@/, "").toLowerCase();
+  const looksLikeEmail = email.includes("@");
 
   const users = await prisma.user.findMany({
     where: {
@@ -135,9 +135,7 @@ export async function searchPeople(query: string, meId: string) {
       OR: [
         { email },
         { username },
-        { username: { contains: username, ...textSearch } },
-        { name: { contains: q, ...textSearch } },
-        { email: { contains: email, ...textSearch } },
+        ...(looksLikeEmail ? [] : [{ username: { contains: username, ...textSearch } }, { name: { contains: q, ...textSearch } }]),
       ],
     },
     select: userSelect,
@@ -172,8 +170,10 @@ export async function searchPeople(query: string, meId: string) {
               : "outgoing"
             : "none";
     if (relation === "blocked") continue;
+    const card = friendCard(user);
     results.push({
-      ...friendCard(user),
+      ...card,
+      handle: !card.handle && looksLikeEmail && user.email === email ? user.email : card.handle,
       relation,
       friendshipId: row && row.status !== "DECLINED" ? row.id : null,
     });

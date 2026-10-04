@@ -24,12 +24,20 @@ export async function persistUploadedImage(dataUrl: string, userId: string) {
   }
 
   if (blobConfigured()) {
-    const ext = parsed.contentType === "image/png" ? "png" : parsed.contentType === "image/webp" ? "webp" : "jpg";
-    const blob = await put(`wuyule/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, parsed.buffer, {
-      access: "public",
-      contentType: parsed.contentType,
-    });
-    return { url: blob.url } as const;
+    try {
+      const ext = parsed.contentType === "image/png" ? "png" : parsed.contentType === "image/webp" ? "webp" : "jpg";
+      const blob = await put(`wuyule/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, parsed.buffer, {
+        access: "public",
+        contentType: parsed.contentType,
+      });
+      return { url: blob.url } as const;
+    } catch (error) {
+      console.error("blob upload failed", error);
+      if (dataUrl.length <= MAX_DATA_URL) {
+        return { url: dataUrl, fallback: "data" as const };
+      }
+      return { error: "图片存储暂时不可用。", status: 503, missingBlob: true } as const;
+    }
   }
 
   if (dataUrl.length > MAX_DATA_URL) {
