@@ -23,19 +23,14 @@ import {
   Users,
   X,
 } from "lucide-react";
-import {
-  initialStories,
-  makePlaceholderBatch,
-  sampleObjects,
-  type ShelfObject,
-  type Story,
-} from "@/lib/sample-shelf";
+import { type ShelfObject, type Story } from "@/lib/sample-shelf";
 import EventDetail, { defaultEventSocial, type EventSocial } from "@/components/EventDetail";
 import { apiPath, withBasePath } from "@/lib/base-path";
 import { initialsFrom, type FriendRelation, type PublicPerson } from "@/lib/people";
 
 type Tab = "shelf" | "gallery" | "friends" | "me";
-type SearchPerson = PublicPerson & { relation: FriendRelation };
+type SearchPerson = PublicPerson & { relation: FriendRelation; friendshipId?: string | null };
+type StoryRecord = { story: Story; item: ShelfObject; comments: { id: string; author: string; text: string }[]; likes?: number; liked?: boolean };
 type FriendRequest = { id: string; person: PublicPerson };
 
 function Brand({ onBook }: { onBook: () => void }) {
@@ -56,10 +51,9 @@ export default function Home() {
   const [showEdit, setShowEdit] = useState(false);
   const [socialById, setSocialById] = useState<Record<string, EventSocial>>({});
   const [notice, setNotice] = useState("");
-  const [stories, setStories] = useState<Story[]>([]);
+  const [shelfStories, setShelfStories] = useState<Story[]>([]);
+  const [galleryStories, setGalleryStories] = useState<Story[]>([]);
   const [shelfObjects, setShelfObjects] = useState<ShelfObject[]>([]);
-  const [demoFill, setDemoFill] = useState(false);
-  const [shelfSource, setShelfSource] = useState<"db" | "empty" | "missing_schema" | "error">("empty");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shelfQuery, setShelfQuery] = useState("");
 
@@ -102,25 +96,19 @@ export default function Home() {
 
   useEffect(() => {
     let live = true;
-    fetch(apiPath("/api/stories"))
-      .then((response) => (response.ok ? response.json() : { records: [] }))
-      .then((data) => {
-        if (!live || !Array.isArray(data.records)) return;
-        const records = data.records as { story: Story; item: ShelfObject; comments: { id: string; author: string; text: string }[]; likes?: number; liked?: boolean }[];
-        if (records.length) {
-          setDemoFill(false);
-          setShelfSource("db");
-          setStories(records.map((record) => record.story));
-          setShelfObjects(records.filter((record) => record.item.objectImage).map((record) => record.item));
-        } else {
-          setDemoFill(true);
-          setShelfSource(data.source === "missing_schema" || data.source === "error" ? data.source : "empty");
-          setStories(initialStories);
-          setShelfObjects(sampleObjects);
-        }
+    const load = (scope: "shelf" | "gallery") =>
+      fetch(apiPath(`/api/stories?scope=${scope}`))
+        .then((response) => (response.ok ? response.json() : { records: [] }))
+        .then((data) => (Array.isArray(data.records) ? data.records as StoryRecord[] : []));
+    Promise.all([load("shelf"), load("gallery")])
+      .then(([shelf, gallery]) => {
+        if (!live) return;
+        setShelfStories(shelf.map((record) => record.story));
+        setShelfObjects(shelf.filter((record) => record.item.objectImage).map((record) => record.item));
+        setGalleryStories(gallery.map((record) => record.story));
         setSocialById((current) => {
           const next = { ...current };
-          for (const record of records) {
+          for (const record of [...shelf, ...gallery]) {
             const key = String(record.story.dbId ?? record.story.id);
             next[key] = { liked: Boolean(record.liked), likes: record.likes ?? 0, comments: record.comments };
           }
@@ -129,10 +117,9 @@ export default function Home() {
       })
       .catch(() => {
         if (!live) return;
-        setDemoFill(true);
-        setShelfSource("error");
-        setStories(initialStories);
-        setShelfObjects(sampleObjects);
+        setShelfStories([]);
+        setShelfObjects([]);
+        setGalleryStories([]);
       });
     return () => {
       live = false;
@@ -198,14 +185,19 @@ export default function Home() {
   }, [notify, router, status]);
 
   const addStory = useCallback((item: ShelfObject, story: Story) => {
-    setDemoFill(false);
-    setShelfObjects((current) => [item, ...current.filter((entry) => typeof entry.storyId === "string")]);
-    setStories((current) => [story, ...current.filter((entry) => Boolean(entry.dbId) || typeof entry.id === "string")]);
+    setShelfObjects((current) => [item, ...current]);
+    setShelfStories((current) => [story, ...current]);
+    if (story.public) setGalleryStories((current) => [story, ...current.filter((entry) => entry.id !== story.id && entry.dbId !== story.dbId)]);
     const key = String(story.dbId ?? story.id);
     setSocialById((current) => ({ ...current, [key]: current[key] ?? defaultEventSocial() }));
   }, []);
   const saveEvent = useCallback((item: ShelfObject, story: Story) => {
-    setStories((current) => current.map((entry) => (entry.id === story.id || entry.dbId === story.dbId) ? story : entry));
+    const same = (entry: Story) => entry.id === story.id || entry.dbId === story.dbId;
+    setShelfStories((current) => current.map((entry) => (same(entry) ? story : entry)));
+    setGalleryStories((current) => {
+      const rest = current.filter((entry) => !same(entry));
+      return story.public ? [story, ...rest] : rest;
+    });
     setShelfObjects((current) => current.map((entry) => (entry.storyId === story.id || entry.storyId === story.dbId) ? { ...entry, id: item.id, date: item.date, title: item.title, objectImage: item.objectImage, people: item.people, cutout: item.cutout } : entry));
     setReader({ story, objectImage: item.objectImage });
   }, []);
@@ -268,18 +260,7 @@ export default function Home() {
         </header>
       )}
       <div className="content-area">
-        {timeline ? <TimelineView stories={stories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? (
-          <>
-            {demoFill && (
-              <p className="demo-fill-note">
-                {shelfSource === "missing_schema"
-                  ? "样例货架。生产库还没有表，上架会失败。"
-                  : "样例货架。登录并上架后，这里会换成你的记录。"}
-              </p>
-            )}
-            <ShelfView items={shelfObjects} stories={stories} query={shelfQuery} allowPlaceholders={demoFill && !shelfQuery.trim()} onOpen={openEvent} onAdd={openAdd} />
-          </>
-        ) : tab === "gallery" ? <GalleryView stories={stories} onOpen={openEvent} socialById={socialById} onToggleLike={(id) => void toggleLike(id)} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
+        {timeline ? <TimelineView stories={shelfStories} onOpen={openEvent} onBack={() => setTimeline(false)} /> : tab === "shelf" ? <ShelfView items={shelfObjects} stories={shelfStories} query={shelfQuery} onOpen={openEvent} onAdd={openAdd} /> : tab === "gallery" ? <GalleryView stories={galleryStories} onOpen={openEvent} socialById={socialById} onToggleLike={(id) => void toggleLike(id)} /> : tab === "friends" ? <FriendsView notify={notify} /> : <MeView notify={notify} />}
       </div>
       <nav className="bottom-nav" aria-label="主导航">
         <NavItem active={tab === "shelf" && !timeline} icon={<Layers size={20} />} label="打开首页" onClick={() => openTab("shelf")} />
@@ -311,52 +292,29 @@ function matchesShelfQuery(item: ShelfObject, stories: Story[], query: string) {
   return haystack.includes(q);
 }
 
-const ShelfView = memo(function ShelfView({ items, stories, query = "", allowPlaceholders = false, onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; query?: string; allowPlaceholders?: boolean; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
-  const [extras, setExtras] = useState<{ items: ShelfObject[]; stories: Story[] }>({ items: [], stories: [] });
-  const sentinelRef = useRef<HTMLDivElement>(null);
+const ShelfView = memo(function ShelfView({ items, stories, query = "", onOpen, onAdd }: { items: ShelfObject[]; stories: Story[]; query?: string; onOpen: (story: Story, objectImage?: string) => void; onAdd: () => void }) {
   const filteredItems = items.filter((item) => matchesShelfQuery(item, stories, query));
-  const displayedItems = allowPlaceholders ? [...filteredItems, ...extras.items] : filteredItems;
-  const displayedStories = [...stories, ...extras.stories];
-  const rows = chunkRows(displayedItems);
-
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
-    let locked = false;
-    const observer = new IntersectionObserver((entries) => {
-      if (!allowPlaceholders || !entries[0]?.isIntersecting || locked) return;
-      locked = true;
-      setExtras((current) => {
-        if (current.items.length >= 160) return current;
-        const next = makePlaceholderBatch(items.length + current.items.length);
-        return { items: [...current.items, ...next.items], stories: [...current.stories, ...next.stories] };
-      });
-      window.setTimeout(() => { locked = false; }, 480);
-    }, { root: null, rootMargin: "360px 0px" });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [allowPlaceholders, items.length]);
+  const rows = chunkRows(filteredItems);
 
   return (
-    <section className="view shelf-view" aria-label="物品架" data-demo-fill={allowPlaceholders ? "true" : undefined}>
+    <section className="view shelf-view" aria-label="物品架">
       <div className="shelf-rack">
         {rows.map((row, index) => (
           <div className={`shelf-row ${index === 0 ? "shelf-row-top" : "shelf-row-bottom"}`} key={row.map((item) => item.id).join("-")}>
-            {row.map((item) => <ShelfItem key={item.id} item={item} stories={displayedStories} onOpen={onOpen} />)}
+            {row.map((item) => <ShelfItem key={item.id} item={item} stories={stories} onOpen={onOpen} />)}
             {row.length < 4 && Array.from({ length: 4 - row.length }, (_, empty) => (
               <button className="shelf-empty" key={`empty-${index}-${empty}`} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>
             ))}
           </div>
         ))}
-        {displayedItems.length === 0 && query.trim() ? (
+        {filteredItems.length === 0 && query.trim() ? (
           <p className="shelf-empty-search">没有找到</p>
-        ) : displayedItems.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="shelf-row shelf-row-bottom">
             {Array.from({ length: 4 }, (_, index) => <button className="shelf-empty" key={index} onClick={onAdd} aria-label="添加物品"><Plus size={19} /></button>)}
           </div>
         ) : null}
       </div>
-      <div ref={sentinelRef} className="shelf-sentinel" aria-hidden="true" />
     </section>
   );
 });
@@ -421,7 +379,7 @@ function PersonRow({
       <span className="person-avatar">{person.initials}</span>
       <div>
         <strong>{person.name}</strong>
-        <small>{note ? `${person.handle} · ${note}` : person.handle}</small>
+        <small>{[person.handle, note].filter(Boolean).join(" · ")}</small>
       </div>
       {children}
     </div>
@@ -435,6 +393,7 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
   const [incoming, setIncoming] = useState<FriendRequest[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequest[]>([]);
   const [results, setResults] = useState<SearchPerson[]>([]);
+  const [searchedQuery, setSearchedQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
   const loadLists = async () => {
@@ -457,6 +416,7 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
     const q = query.trim();
     if (!q) {
       setResults([]);
+      setSearchedQuery("");
       return;
     }
     let live = true;
@@ -464,7 +424,10 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
       const response = await fetch(apiPath(`/api/friends/search?q=${encodeURIComponent(q)}`));
       if (!live || !response.ok) return;
       const data = await response.json();
-      if (live) setResults(Array.isArray(data.results) ? data.results : []);
+      if (live) {
+        setResults(Array.isArray(data.results) ? data.results : []);
+        setSearchedQuery(q);
+      }
     }, 220);
     return () => {
       live = false;
@@ -503,6 +466,11 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
       return;
     }
     await loadLists();
+    setResults((current) => current.map((person) => (
+      person.friendshipId === id
+        ? { ...person, relation: action === "accept" ? "friends" : "none", friendshipId: action === "accept" ? id : null }
+        : person
+    )));
   };
 
   if (status === "unauthenticated") {
@@ -518,7 +486,18 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
       <div className="friends-toolbar">
         <button
           className="add-friend"
-          onClick={() => void sendRequest({ query })}
+          onClick={() => {
+            const addable = results.filter((person) => person.relation === "none");
+            if (addable.length === 1) {
+              void sendRequest({ userId: addable[0].id });
+              return;
+            }
+            if (results.length > 1) {
+              notify("从列表里选一个人。");
+              return;
+            }
+            void sendRequest({ query });
+          }}
           disabled={busy || !query.trim()}
           aria-label="添加好友"
         >
@@ -531,26 +510,26 @@ function FriendsView({ notify }: { notify: (message: string) => void }) {
       </div>
       <div className="friend-list">
         {query.trim()
-          ? results.map((person) => (
-              <PersonRow key={person.id} person={person} note={person.relation === "outgoing" ? "待接受" : person.relation === "incoming" ? "待处理" : undefined}>
+          ? (
+            <>
+              {searchedQuery === query.trim() && results.length === 0 && <p className="shelf-empty-search">没有找到</p>}
+              {results.map((person) => (
+              <PersonRow key={person.id} person={person} note={person.relation === "outgoing" ? "待接受" : person.relation === "friends" ? "已添加" : undefined}>
                 {person.relation === "none" && (
                   <button className="quiet-button" disabled={busy} onClick={() => void sendRequest({ userId: person.id })} aria-label={`添加 ${person.name}`}>
                     添加
                   </button>
                 )}
-                {person.relation === "incoming" && (
+                {person.relation === "incoming" && person.friendshipId && (
                   <div className="friend-row-actions">
-                    {incoming.filter((row) => row.person.id === person.id).map((row) => (
-                      <span key={row.id} className="friend-row-actions">
-                        <button className="quiet-button" onClick={() => void respond(row.id, "accept")}>接受</button>
-                        <button className="quiet-button" onClick={() => void respond(row.id, "decline")}>拒绝</button>
-                      </span>
-                    ))}
+                    <button className="quiet-button" disabled={busy} onClick={() => void respond(person.friendshipId!, "accept")}>接受</button>
+                    <button className="quiet-button" disabled={busy} onClick={() => void respond(person.friendshipId!, "decline")}>拒绝</button>
                   </div>
                 )}
               </PersonRow>
-            ))
-          : (
+              ))}
+            </>
+          ) : (
             <>
               {incoming.map((row) => (
                 <PersonRow key={row.id} person={row.person}>

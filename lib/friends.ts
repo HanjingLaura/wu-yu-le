@@ -11,6 +11,19 @@ export type FriendRequestRow = {
   person: PublicPerson;
 };
 
+function friendCard(user: {
+  id: string;
+  name: string | null;
+  username: string | null;
+  email: string;
+}): PublicPerson {
+  const person = toPublicPerson(user);
+  return {
+    ...person,
+    handle: user.username ? `@${user.username}` : "",
+  };
+}
+
 function otherUser(
   row: {
     requesterId: string;
@@ -38,7 +51,7 @@ export async function listFriendships(meId: string) {
   const outgoing: FriendRequestRow[] = [];
 
   for (const row of rows) {
-    const person = toPublicPerson(otherUser(row, meId));
+    const person = friendCard(otherUser(row, meId));
     if (row.status === "ACCEPTED") friends.push(person);
     else if (row.addresseeId === meId) incoming.push({ id: row.id, person });
     else outgoing.push({ id: row.id, person });
@@ -157,7 +170,13 @@ export async function searchPeople(query: string, meId: string) {
               : "outgoing"
             : "none";
     if (relation === "blocked") continue;
-    results.push({ ...toPublicPerson(user, { revealEmail: looksLikeEmail && user.email === email }), relation });
+    const card = friendCard(user);
+    results.push({
+      ...card,
+      handle: !card.handle && looksLikeEmail && user.email === email ? user.email : card.handle,
+      relation,
+      friendshipId: row && row.status !== "DECLINED" ? row.id : null,
+    });
   }
   return results;
 }
